@@ -210,12 +210,11 @@ if parFlag    %if flag is set do processing in parallel
 %     feat = cell(numBlocks,1);
 %     numNan = cell(numBlocks,1);
     for tm = 1:numPar
-       %%%%THIS IS BAD CODE!!!! CHANGE THIS!
-       tmpF = parFeat{tm};
-       tmpN = parNan{tm};
-       feat = [feat; tmpF];
-       numNan = [numNan; tmpN];
-       
+%        %%%%THIS IS BAD CODE!!!! CHANGE THIS!
+%        tmpF = parFeat{tm};
+%        tmpN = parNan{tm};
+%        feat = [feat; tmpF];
+%        numNan = [numNan; tmpN];
        featTot(parBlocks*(tm-1)+1 : parBlocks*tm) = parFeat{tm};
        numNanTot(parBlocks*(tm-1)+1 : parBlocks*tm) = parNan{tm}; 
        
