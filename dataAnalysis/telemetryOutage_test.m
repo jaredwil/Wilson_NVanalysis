@@ -2,14 +2,15 @@ clear all
 close all
 clc
 
-addpath('NVanalysis_data\data_tests')
-addpath('Wilson_NVanalysis')
+addpath(genpath('NVanalysis_data'))
+addpath(genpath('Wilson_NVanalysis'))
 
 load('numNan_allCh_allPt_2mo.mat')
 ll = load('NVC1001_25_001__LL_allCh_2Months.mat');
 ll = ll.feat;
 % energy = load('NVC1001_25_001__Energy_allCh_2Months.mat');
 % energy = energy.feat;
+
 numNanPt1 = numNan{1};
 
 timeS = (1:length(ll)).*15;
