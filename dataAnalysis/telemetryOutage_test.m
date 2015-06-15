@@ -56,12 +56,16 @@ outSize = (endT - startT) + 1;
 
 %draw recangles
 figure(1)
-plot(timeD,ll_repOut(:,1));
-hold on;
 for i = 1:length(outSize)
    h = rectangle('Position',[startT(i)/5760,-5,outSize(i)/5760,max(ll(:,1))], ...
-       'FaceColor',[0.8 0.8 0.8],'EdgeColor','w');
+       'FaceColor',[0.85 0.85 0.85],'EdgeColor','w');
 end
+hold on;
+plot(timeD,ll_repOut(:,1));
+set(gcf,'Color','w');
+set(gca,'FontSize',20);
+set(gca,'LineWidth',5)
+set(gcf,'Position',get(0,'Screensize'))
 xlabel('Days')
 ylabel('Feature (Line Length)')
 axis([min(timeD) max(timeD) min(ll_repOut(:,1)) maxV(1) + 5])

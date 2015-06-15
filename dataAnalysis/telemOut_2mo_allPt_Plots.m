@@ -89,16 +89,19 @@ for ptNum = 1 %:length(pt)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%PLOT LL%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         figure(1)
-        plot(timeD,llOut(:,i));
-        hold on;
         for j = 1:length(outSize)
-           rectangle('Position',[startT(j)/5760,-5,outSize(j)/5760,max(ll(:,1))], ...
+           rectangle('Position',[startT(j)/5760,min(llOut(:,i)),outSize(j)/5760,max(ll(:,1))], ...
                'FaceColor',[0.8 0.8 0.8],'EdgeColor','w');
         end
+        hold on;
+        plot(timeD,llOut(:,i));
+        set(gcf,'Color','w');
+        set(gca,'FontSize',25);
+        set(gca,'LineWidth',3);
+        set(gcf,'Position',get(0,'Screensize'));
         xlabel('Days')
         ylabel('Feature (Line Length)')
         title(['Line Length Over First 60 Days (Channel ' num2str(i) '/Patient ' pt{ptNum} ')'])
-        set(gcf,'Color','w');
         axis([min(timeD) max(timeD) min(llOut(:,i)) maxLL(i) + devLL(i)])
 
         %save as .png and close
@@ -108,35 +111,42 @@ for ptNum = 1 %:length(pt)
         
 %%%%%%%%%%%%%%%%%%%%%%%PLOT Energy%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         figure(2)
-        plot(timeD,energyOut(:,i));
-        hold on;
         for j = 1:length(outSize)
-           rectangle('Position',[startT(j)/5760,-5,outSize(j)/5760,max(ll(:,1))], ...
+           rectangle('Position',[startT(j)/5760,min(energyOut(:,i)),outSize(j)/5760,max(energyOut(:,1))], ...
                'FaceColor',[0.8 0.8 0.8],'EdgeColor','w');
         end
+        hold on;
+
+        plot(timeD,energyOut(:,i));
+        set(gcf,'Color','w');
+        set(gca,'FontSize',25);
+        set(gca,'LineWidth',3);
+        set(gcf,'Position',get(0,'Screensize'));
         xlabel('Days')
         ylabel('Feature (Line Length)')
         title(['Energy Over First 60 Days (Channel ' num2str(i) '/Patient ' pt{ptNum} ')'])
-        set(gcf,'Color','w');
         axis([min(timeD) max(timeD) min(energyOut(:,i)) maxEn(i) + devEn(i)])
+
         %save as .png and close
         label = ['energy_2mo_ch'  num2str(i) '_' pt{ptNum}];
         print(label,'-dpng');
         close;
-        
-%%%%%%%%%%%%%%%%%%%% Outage Cumulation Plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
-        figure(3)
-        plot(timeD, sumOut_sec{i}/86400)
-        hold on;
-        xlabel('Days')
-        ylabel('Total Outage Time (Days)')
-        title(['Cumulative Outage Time Over First 60 Days (Patient ' pt{ptNum} ')'])
-        set(gcf,'Color','w');
-        
+        disp(['Pt: ' num2str(ptNum) '/14  Ch: ' num2str(i) '/15'])
 
     end
-     
+%%%%%%%%%%%%%%%%%%%% Outage Cumulation Plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    figure(3)    
+    for i = 1:size(sumOut_sec,1) 
+        plot(timeD, sumOut_sec{i}/86400)
+        hold on;
+    end
+    xlabel('Days')
+    ylabel('Total Outage Time (Days)')
+    title(['Cumulative Outage Time Over First 60 Days (Patient ' pt{ptNum} ')'])
+    set(gcf,'Color','w');
+    set(gca,'FontSize',25);
+    set(gca,'LineWidth',2);
+    set(gcf,'Position',get(0,'Screensize'));        
     %create legend for figure 3 (cumulative plot)
     legend('Channel 1','Channel 2','Channel 3','Channel 4','Channel 5', ...
         'Channel 6','Channel 7','Channel 8','Channel 9','Channel 10', ...
