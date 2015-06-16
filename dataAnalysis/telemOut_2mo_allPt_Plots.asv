@@ -22,7 +22,7 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
     'NVC1001_23_005' 'NVC1001_23_006' 'NVC1001_23_007'};
 
 load('numNan_allCh_allPt_2mo.mat')
-timeS = (1:length(ll)).*15;
+timeS = (1:length(numNan{1})).*15;
 timeM = timeS./60;
 timeH = timeM./60;
 timeD = timeH./24;
@@ -30,7 +30,7 @@ winSize = 15;
 fs = 400;
 
 
-for ptNum = 1 %:length(pt)
+for ptNum = 1:length(pt)
     
     labelLL = [pt{ptNum} '__LL_allCh_2Months.mat'];
     labelEn = [pt{ptNum} '__Energy_allCh_2Months.mat'];
@@ -90,14 +90,14 @@ for ptNum = 1 %:length(pt)
 %%%%%%%%%%%%%%%%%%%%%%%%%%PLOT LL%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         figure(1)
         for j = 1:length(outSize)
-           rectangle('Position',[startT(j)/5760,min(llOut(:,i)),outSize(j)/5760,max(ll(:,1))], ...
+           rectangle('Position',[startT(j)/5760,min(llOut(:,i)),outSize(j)/5760,maxLL(i) + devLL(i)], ...
                'FaceColor',[0.8 0.8 0.8],'EdgeColor','w');
         end
         hold on;
         plot(timeD,llOut(:,i));
-        set(gcf,'Color','w');
-        set(gca,'FontSize',20);
-        set(gca,'LineWidth',2);
+        %set(gcf,'Color','w');
+        set(gca,'FontSize',15);
+        set(gca,'LineWidth',3);
         set(gcf,'Position',get(0,'Screensize'));
         xlabel('Days')
         ylabel('Feature (Line Length)')
@@ -112,15 +112,15 @@ for ptNum = 1 %:length(pt)
 %%%%%%%%%%%%%%%%%%%%%%%PLOT Energy%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         figure(2)
         for j = 1:length(outSize)
-           rectangle('Position',[startT(j)/5760,min(energyOut(:,i)),outSize(j)/5760,max(energyOut(:,1))], ...
+           rectangle('Position',[startT(j)/5760,min(energyOut(:,i)),outSize(j)/5760,maxEn(i) + devEn(i)], ...
                'FaceColor',[0.8 0.8 0.8],'EdgeColor','w');
         end
         hold on;
 
         plot(timeD,energyOut(:,i));
-        set(gcf,'Color','w');
-        set(gca,'FontSize',20);
-        set(gca,'LineWidth',2);
+        %set(gcf,'Color','w');
+        set(gca,'FontSize',15);
+        set(gca,'LineWidth',3);
         set(gcf,'Position',get(0,'Screensize'));
         xlabel('Days')
         ylabel('Feature (Line Length)')
@@ -140,18 +140,20 @@ for ptNum = 1 %:length(pt)
         plot(timeD, sumOut_sec{i}/86400)
         hold on;
     end
+%    legend('Channel 1','Channel 2','Channel 3','Channel 4','Channel 5', ...
+%        'Channel 6','Channel 7','Channel 8','Channel 9','Channel 10', ...
+%        'Channel 11','Channel 12','Channel 13','Channel 14','Channel 15',...
+%        'Channel 16')
+
+    %set(gcf,'Color','w');
+    set(gca,'FontSize',15);
+    set(gca,'LineWidth',2);
+    set(gcf,'Position',get(0,'Screensize')); 
     xlabel('Days')
     ylabel('Total Outage Time (Days)')
-    title(['Cumulative Outage Time Over First 60 Days (Patient ' pt{ptNum} ')'])
-    set(gcf,'Color','w');
-    set(gca,'FontSize',20);
-    set(gca,'LineWidth',2);
-    set(gcf,'Position',get(0,'Screensize'));        
+    title(['Cumulative Outage Time Over First 60 Days (Patient ' pt{ptNum} ')'])  
+    
     %create legend for figure 3 (cumulative plot)
-    legend('Channel 1','Channel 2','Channel 3','Channel 4','Channel 5', ...
-        'Channel 6','Channel 7','Channel 8','Channel 9','Channel 10', ...
-        'Channel 11','Channel 12','Channel 13','Channel 14','Channel 15',...
-        'Channel 16')
     %save figure 3 (cumulative plot)
     label = ['CumulativeOutage_' pt{ptNum}];
     print(label,'-dpng');

@@ -151,7 +151,9 @@ for ptNum = 1:length(pt)
     set(gcf,'Position',get(0,'Screensize')); 
     xlabel('Days')
     ylabel('Total Outage Time (Days)')
-    title(['Cumulative Outage Time Over First 60 Days (Patient ' pt{ptNum} ')'])       
+    title(['Cumulative Outage Time Over First 60 Days (Patient ' pt{ptNum} ')'])  
+    axis([min(timeD) max(timeD) min(timeD) max(timeD)])
+
     %create legend for figure 3 (cumulative plot)
     %save figure 3 (cumulative plot)
     label = ['CumulativeOutage_' pt{ptNum}];
