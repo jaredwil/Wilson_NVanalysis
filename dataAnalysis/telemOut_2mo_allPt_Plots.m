@@ -88,51 +88,52 @@ for ptNum = 1:length(pt)
         outSize = (endT - startT) + 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%PLOT LL%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        figure(1)
-        for j = 1:length(outSize)
-           rectangle('Position',[startT(j)/5760,min(llOut(:,i)),outSize(j)/5760,maxLL(i) + devLL(i)], ...
-               'FaceColor',[0.8 0.8 0.8],'EdgeColor','w');
-        end
-        hold on;
-        plot(timeD,llOut(:,i));
-        %set(gcf,'Color','w');
-        set(gca,'FontSize',15);
-        set(gca,'LineWidth',3);
-        set(gcf,'Position',get(0,'Screensize'));
-        xlabel('Days')
-        ylabel('Feature (Line Length)')
-        title(['Line Length Over First 60 Days (Channel ' num2str(i) '/Patient ' pt{ptNum} ')'])
-        axis([min(timeD) max(timeD) min(llOut(:,i)) maxLL(i) + devLL(i)])
+%         figure(1)
+%         for j = 1:length(outSize)
+%            rectangle('Position',[startT(j)/5760,min(llOut(:,i)),outSize(j)/5760,maxLL(i) + devLL(i)], ...
+%                'FaceColor',[0.8 0.8 0.8],'EdgeColor','w');
+%         end
+%         hold on;
+%         plot(timeD,llOut(:,i));
+%         %set(gcf,'Color','w');
+%         set(gca,'FontSize',15);
+%         set(gca,'LineWidth',3);
+%         set(gcf,'Position',get(0,'Screensize'));
+%         xlabel('Days')
+%         ylabel('Feature (Line Length)')
+%         title(['Line Length Over First 60 Days (Channel ' num2str(i) '/Patient ' pt{ptNum} ')'])
+%         axis([min(timeD) max(timeD) min(llOut(:,i)) maxLL(i) + devLL(i)])
+% 
+%         %save as .png and close
+%         label = ['ll_2mo_ch'  num2str(i) '_' pt{ptNum}];
+%         print(label,'-dpng');
+%         close;
+%         
+% %%%%%%%%%%%%%%%%%%%%%%%PLOT Energy%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         figure(2)
+%         for j = 1:length(outSize)
+%            rectangle('Position',[startT(j)/5760,min(energyOut(:,i)),outSize(j)/5760,maxEn(i) + devEn(i)], ...
+%                'FaceColor',[0.8 0.8 0.8],'EdgeColor','w');
+%         end
+%         hold on;
+% 
+%         plot(timeD,energyOut(:,i));
+%         %set(gcf,'Color','w');
+%         set(gca,'FontSize',15);
+%         set(gca,'LineWidth',3);
+%         set(gcf,'Position',get(0,'Screensize'));
+%         xlabel('Days')
+%         ylabel('Feature (Line Length)')
+%         title(['Energy Over First 60 Days (Channel ' num2str(i) '/Patient ' pt{ptNum} ')'])
+%         axis([min(timeD) max(timeD) min(energyOut(:,i)) maxEn(i) + devEn(i)])
+% 
+%         %save as .png and close
+%         label = ['energy_2mo_ch'  num2str(i) '_' pt{ptNum}];
+%         print(label,'-dpng');
+%         close;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        %save as .png and close
-        label = ['ll_2mo_ch'  num2str(i) '_' pt{ptNum}];
-        print(label,'-dpng');
-        close;
-        
-%%%%%%%%%%%%%%%%%%%%%%%PLOT Energy%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        figure(2)
-        for j = 1:length(outSize)
-           rectangle('Position',[startT(j)/5760,min(energyOut(:,i)),outSize(j)/5760,maxEn(i) + devEn(i)], ...
-               'FaceColor',[0.8 0.8 0.8],'EdgeColor','w');
-        end
-        hold on;
-
-        plot(timeD,energyOut(:,i));
-        %set(gcf,'Color','w');
-        set(gca,'FontSize',15);
-        set(gca,'LineWidth',3);
-        set(gcf,'Position',get(0,'Screensize'));
-        xlabel('Days')
-        ylabel('Feature (Line Length)')
-        title(['Energy Over First 60 Days (Channel ' num2str(i) '/Patient ' pt{ptNum} ')'])
-        axis([min(timeD) max(timeD) min(energyOut(:,i)) maxEn(i) + devEn(i)])
-
-        %save as .png and close
-        label = ['energy_2mo_ch'  num2str(i) '_' pt{ptNum}];
-        print(label,'-dpng');
-        close;
-        disp(['Pt: ' num2str(ptNum) '/14  Ch: ' num2str(i) '/15'])
-
+         disp(['Pt: ' num2str(ptNum) '/14  Ch: ' num2str(i) '/15'])
     end
 %%%%%%%%%%%%%%%%%%%% Outage Cumulation Plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     figure(3)    
