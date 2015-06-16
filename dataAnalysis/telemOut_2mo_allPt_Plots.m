@@ -29,6 +29,7 @@ timeD = timeH./24;
 winSize = 15;
 fs = 400;
 
+sumOut_sec = cell(size(numNanPt,2),numel(pt));
 
 for ptNum = 1:length(pt)
     
@@ -44,7 +45,6 @@ for ptNum = 1:length(pt)
     numNanPt = numNan{ptNum};
 
     telOutage = cell(size(numNanPt,2),1);
-    sumOut_sec = cell(size(numNanPt,2),numel(pt));
     llOut = ll;
     energyOut = energy;
     maxLL = zeros(1,size(ll,2));
@@ -164,7 +164,7 @@ end
 
 
 for i = 1:numel(pt)
-    plot(timeD, sumOut_sec{1,ptNum}/86400,'LineWidth',2)
+    plot(timeD, sumOut_sec{1,i}/86400,'LineWidth',2)
     hold on;
 end
 legend(pt{1},pt{2},pt{3},pt{4},pt{5},pt{6},pt{7},pt{8},pt{9},...
