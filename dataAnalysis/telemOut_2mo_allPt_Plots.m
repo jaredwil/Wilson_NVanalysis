@@ -44,7 +44,7 @@ for ptNum = 1:length(pt)
     numNanPt = numNan{ptNum};
 
     telOutage = cell(size(numNanPt,2),1);
-    sumOut_sec = cell(size(numNanPt,2),1);
+    sumOut_sec = cell(size(numNanPt,2),numel(pt));
     llOut = ll;
     energyOut = energy;
     maxLL = zeros(1,size(ll,2));
@@ -138,7 +138,7 @@ for ptNum = 1:length(pt)
 %%%%%%%%%%%%%%%%%%%% Outage Cumulation Plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     figure(3)    
     for i = 1:size(sumOut_sec,1) 
-        plot(timeD, sumOut_sec{i}/86400)
+        plot(timeD, sumOut_sec{i,ptNum}/86400)
         hold on;
     end
 %    legend('Channel 1','Channel 2','Channel 3','Channel 4','Channel 5', ...
@@ -161,3 +161,25 @@ for ptNum = 1:length(pt)
     print(label,'-dpng');
     close;
 end
+
+
+for i = 1:numel(pt)
+    plot(timeD, sumOut_sec{1,ptNum}/86400,'LineWidth',2)
+    hold on;
+end
+legend(pt{1},pt{2},pt{3},pt{4},pt{5},pt{6},pt{7},pt{8},pt{9},...
+    pt{10},pt{11},pt{12},pt{13},pt{14},'Location','bestoutside')
+%set(gcf,'Color','w');
+set(gca,'FontSize',15);
+set(gca,'LineWidth',2);
+set(gcf,'Position',get(0,'Screensize')); 
+xlabel('Days')
+ylabel('Total Outage Time (Days)')
+title('Cumulative Outage Time Over First 60 Days (All Patients)')  
+axis([min(timeD) max(timeD) min(timeD) max(timeD)])
+
+%create legend for figure 3 (cumulative plot)
+%save figure 3 (cumulative plot)
+label = 'CumulativeOutage_allPt';
+print(label,'-dpng');
+close;
