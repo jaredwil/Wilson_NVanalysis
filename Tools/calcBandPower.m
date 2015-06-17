@@ -1,4 +1,4 @@
-function [feat, numNan] = calcFeature_wil(datasets,channels,feature,winLen,outLabel,runIndex,blockLenSecs,parFlag,varargin)
+function [feat, numNan] = calcBandPower(datasets,channels,band,winLen,outLabel,runIndex,blockLenSecs,parFlag,varargin)
 %  [feat, numNan] = calcFeature_wil(datasets,channels,feature,winLen,outLabel,runIndex,blockLenSecs,parFlag,varargin)
 %       This function is used for feature extraction over long data sets
 %       able to select parflag to run processes in paralell.
@@ -73,14 +73,14 @@ LLFn2 = @(X, winLen) conv2(abs(diff(X,1)),  repmat(1/winLen,winLen,1),'same');
 
 %Important Const.
 %freq Ranges of interest
-alpha = [8; 12];
-beta = [12; 27];
-gamma = [27; 45];
-theta = [3 ;8];
-delta = [0.2; 3];
+alpha = [8 12];
+beta = [12 27];
+gamma = [27 45];
+theta = [3 8];
+delta = [0.2 3];
 
 %% Initialization
-feature = lower(feature);
+band = lower(band);
 %blockLenSecs = 3600; %get data in blocks (use as defult)
 
 %% Parallel Processing
@@ -172,29 +172,44 @@ if parFlag    %if flag is set do processing in parallel
                     tmpFeat = zeros(numWins,nChan);
                     tmpNan  = zeros(numWins,nChan);
                     for n = 1:numWins
-                            %off set included
-                            startWinPt = round(1+(winLen*(n-1)*fs));
-                            endWinPt = round(min(winLen*n*fs,size(blockData,1)));
-                            %Since all Nan set to 0 look for 0's instead of NaN
-                            tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
+                        %off set included
+                        startWinPt = round(1+(winLen*(n-1)*fs));
+                        endWinPt = round(min(winLen*n*fs,size(blockData,1)));
+                        %Since all Nan set to 0 look for 0's instead of NaN
+                        tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
 
-                                switch feature
-                                    case 'power'
-                                        for c = 1:nChan
-                                            y = blockData(startWinPt:endWinPt,c);
-                                            [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                            tmpFeat(n,c) = bandpower(PSD,F,varargin{1},'psd');
-                                        end
-                                    case 'dcn'
-                                        y = blockData(startWinPt:endWinPt,1:nChan);
-                                        tmpFeat(n,1) = DCNCalc(y);
-                                    case 'll'
-                                        y = blockData(startWinPt:endWinPt,1:nChan);
-                                        tmpFeat(n,:) = LLFn(y);
-                                    case 'energy'
-                                        y = blockData(startWinPt:endWinPt,1:nChan);
-                                        tmpFeat(n,:) = EnergyFn(y);
+                        switch band
+                            case 'alpha'
+                                for c = 1:nChan
+                                    y = blockData(startWinPt:endWinPt,c);
+                                    [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                    tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd');
                                 end
+                            case 'beta'
+                                for c = 1:nChan
+                                    y = blockData(startWinPt:endWinPt,c);
+                                    [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                    tmpFeat(n,c) = bandpower(PSD,F,beta,'psd');
+                                end
+                            case 'gamma'
+                                for c = 1:nChan
+                                    y = blockData(startWinPt:endWinPt,c);
+                                    [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                    tmpFeat(n,c) = bandpower(PSD,F,gamma,'psd');
+                                end
+                            case 'theta'
+                                for c = 1:nChan
+                                    y = blockData(startWinPt:endWinPt,c);
+                                    [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                    tmpFeat(n,c) = bandpower(PSD,F,theta,'psd');
+                                end
+                            case 'delta'
+                                for c = 1:nChan
+                                    y = blockData(startWinPt:endWinPt,c);
+                                    [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                    tmpFeat(n,c) = bandpower(PSD,F,delta,'psd');
+                                end                                        
+                        end
                     end
 
                 end
@@ -230,7 +245,7 @@ if parFlag    %if flag is set do processing in parallel
     fprintf('\n');
     feat = cell2mat(featTot);
     numNan = cell2mat(numNanTot);
-    if strcmp(feature,'dcn')
+    if strcmp(band,'dcn')
         feat = feat(:,1);
     end
     save([datasetFN '_' outLabel '.mat'],'feat','-v7.3');
@@ -294,29 +309,44 @@ else          %do normal processing if flag is not set
                 tmpFeat = zeros(numWins,nChan);
                 tmpNan  = zeros(numWins,nChan);
                 for n = 1:numWins
-                        %off set included
-                        startWinPt = round(1+(winLen*(n-1)*fs));
-                        endWinPt = round(min(winLen*n*fs,size(blockData,1)));
-                        %Since all Nan set to 0 look for 0's instead of NaN
-                        tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
+                    %off set included
+                    startWinPt = round(1+(winLen*(n-1)*fs));
+                    endWinPt = round(min(winLen*n*fs,size(blockData,1)));
+                    %Since all Nan set to 0 look for 0's instead of NaN
+                    tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
 
-                            switch feature
-                                case 'power'
-                                    for c = 1:nChan
-                                        y = blockData(startWinPt:endWinPt,c);
-                                        [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                        tmpFeat(n,c) = bandpower(PSD,F,varargin{1},'psd');
-                                    end
-                                case 'dcn'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,1) = DCNCalc(y);
-                                case 'll'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = LLFn(y);
-                                case 'energy'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = EnergyFn(y);
+                    switch band
+                        case 'alpha'
+                            for c = 1:nChan
+                                y = blockData(startWinPt:endWinPt,c);
+                                [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd');
                             end
+                        case 'beta'
+                            for c = 1:nChan
+                                y = blockData(startWinPt:endWinPt,c);
+                                [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                tmpFeat(n,c) = bandpower(PSD,F,beta,'psd');
+                            end
+                        case 'gamma'
+                            for c = 1:nChan
+                                y = blockData(startWinPt:endWinPt,c);
+                                [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                tmpFeat(n,c) = bandpower(PSD,F,gamma,'psd');
+                            end
+                        case 'theta'
+                            for c = 1:nChan
+                                y = blockData(startWinPt:endWinPt,c);
+                                [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                tmpFeat(n,c) = bandpower(PSD,F,theta,'psd');
+                            end
+                        case 'delta'
+                            for c = 1:nChan
+                                y = blockData(startWinPt:endWinPt,c);
+                                [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                tmpFeat(n,c) = bandpower(PSD,F,delta,'psd');
+                            end                                        
+                    end
                 end
                 
             end
@@ -331,7 +361,7 @@ else          %do normal processing if flag is not set
     fprintf('\n');
     feat = cell2mat(feat);
     numNan = cell2mat(numNan);
-    if strcmp(feature,'dcn')
+    if strcmp(band,'dcn')
         feat = feat(:,1);
     end
     save([datasetFN '_' outLabel '.mat'],'feat','-v7.3');

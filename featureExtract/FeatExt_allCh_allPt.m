@@ -23,17 +23,16 @@ ch = 1:16;
 
 
 for i = 1:length(pt)
-disp(['Progress: ' num2str(i) '/15'])
+    disp(['Progress: ' num2str(i) '/15'])
+    %Start Session
+    session = IEEGSession(pt{i},'jaredwil','jar_ieeglogin.bin') ;
+    fs = session.data.sampleRate;               %Find sampling Rate
 
+    labelLL = '_LL_allCh_2Months';
+    labelEnergy = '_Energy_allCh_2Months';
 
-session = IEEGSession(pt{i},'jaredwil','jar_ieeglogin.bin') ;
-fs = session.data.sampleRate;               %Find sampling Rate
-
-labelLL = '_LL_allCh_2Months';
-labelEnergy = '_Energy_allCh_2Months';
-
-[ll{i}, numNan{i}] = calcFeature_wil(session.data, ch ,'ll',15, labelLL,[0 60*day], 2*hour,  1);
-[energy{i}, numNan{i}] = calcFeature_wil(session.data, ch ,'energy',15, labelEnergy,[0 60*day], 2*hour,  1);
+    [ll{i}, numNan{i}] = calcFeature_wil(session.data, ch ,'ll',15, labelLL,[0 60*day], 2*hour,  1);
+    [energy{i}, numNan{i}] = calcFeature_wil(session.data, ch ,'energy',15, labelEnergy,[0 60*day], 2*hour,  1);
 
 
 end
