@@ -137,10 +137,10 @@ for ptNum = 1:length(pt)
          disp(['Pt: ' num2str(ptNum) '/14  Ch: ' num2str(i) '/15'])
     end
 %%%%%%%%%%%%%%%%%%%% Outage Cumulation Plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    figure(3)    
+    figure(3) 
     for i = 1:size(sumOut_sec,1) 
         plot(timeD, sumOut_sec{i,ptNum}/86400,'LineWidth',2)
-        hold all;
+        hold on;
     end
 %    legend('Channel 1','Channel 2','Channel 3','Channel 4','Channel 5', ...
 %        'Channel 6','Channel 7','Channel 8','Channel 9','Channel 10', ...
@@ -163,9 +163,23 @@ for ptNum = 1:length(pt)
     close;
 end
 
-
+pSty = '-';
+cc = hsv(numel(pt));
 for i = 1:numel(pt)
-    h(i) = plot(timeD, sumOut_sec{1,i}/86400,'LineWidth',2);
+    curPt = pt{i};
+    ptLoc = curPt(9:10);
+    
+    if strcomp(ptLoc,'25')
+        pSty = '-';
+    elseif strcomp(ptLoc,'24')
+        pSty = '--';
+    elseif strcomp(ptLoc,'23')
+        pSty = ':';
+    else
+        pSty = '-.';
+    end
+ 
+    h(i) = plot(timeD, sumOut_sec{1,i}/86400,'Color',cc(i,:),'LineWidth',2);
     hold all;
 end
 
@@ -183,8 +197,8 @@ axis([min(timeD) max(timeD) min(timeD) 35])
 label = 'CumulativeOutage_allPt';
 print(label,'-dpng');
 
-[legh,objh,outh,outm] =legend(pt{1},pt{2},pt{3},pt{4},pt{5},pt{6},pt{7},pt{8},pt{9},...
-    pt{10},pt{11},pt{12},pt{13},pt{14},'Location','southoutside')
+[legh,objh,outh,outm] = legend(pt{1},pt{2},pt{3},pt{4},pt{5},pt{6},pt{7},pt{8},pt{9},...
+    pt{10},pt{11},pt{12},pt{13},pt{14},'Location','southoutside');
 
 set(objh,'linewidth',5);
 
