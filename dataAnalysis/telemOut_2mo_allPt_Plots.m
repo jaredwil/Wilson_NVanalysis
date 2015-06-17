@@ -164,16 +164,16 @@ for ptNum = 1:length(pt)
 end
 
 pSty = '-';
-cc = hsv(numel(pt));
+cc = distinguishable_colors(numel(pt));
 for i = 1:numel(pt)
     curPt = pt{i};
     ptLoc = curPt(9:10);
     
-    if strcomp(ptLoc,'25')
+    if strcmp(ptLoc,'25')
         pSty = '-';
-    elseif strcomp(ptLoc,'24')
+    elseif strcmp(ptLoc,'24')
         pSty = '--';
-    elseif strcomp(ptLoc,'23')
+    elseif strcmp(ptLoc,'23')
         pSty = ':';
     else
         pSty = '-.';
