@@ -22,25 +22,23 @@ gammaP = cell(length(pt),1);
 thetaP = cell(length(pt),1);
 
 numNan = cell(length(pt),1);
-ch = 1 %:16;
+ch = 1:16;
 
 
-for i = 1 %:length(pt)
+for i = 1:length(pt)
     disp(['Progress: ' num2str(i) '/15'])
 
     session = IEEGSession(pt{i},'jaredwil','jar_ieeglogin.bin') ;
     fs = session.data.sampleRate;               %Find sampling Rate
 
     labelAlpha = 'alphaBP_allCh_2Months';
-%     labelBeta  = 'betaBP_allCh_2Months';
-%     labelGamma = 'gammaBP_allCh_2Months';
-%     labelTheta = 'thetaBP_allCh_2Months';
+    labelBeta  = 'betaBP_allCh_2Months';
+    labelGamma = 'gammaBP_allCh_2Months';
+    labelTheta = 'thetaBP_allCh_2Months';
     
-    [alphaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'alpha',15,labelAlpha,[0 1*day], hour,  1);
-%     [betaP{i}, numNan{i}]  = calcBandPower(session.data, ch ,'beta',15,labelBeta,[0 60*day], hour,  1);
-%     [gammaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'gamma',15,labelGamma,[0 60*day], hour,  1);
-%     [thetaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'theta',15,labelTheta,[0 60*day], hour,  1);
-
-
+    [alphaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'alpha',15,labelAlpha,[0 60*day], hour,  1);
+    [betaP{i}, numNan{i}]  = calcBandPower(session.data, ch ,'beta',15,labelBeta,[0 60*day], hour,  1);
+    [gammaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'gamma',15,labelGamma,[0 60*day], hour,  1);
+    [thetaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'theta',15,labelTheta,[0 60*day], hour,  1);
 
 end

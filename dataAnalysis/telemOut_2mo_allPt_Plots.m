@@ -168,18 +168,19 @@ cc = distinguishable_colors(numel(pt));
 for i = 1:numel(pt)
     curPt = pt{i};
     ptLoc = curPt(9:10);
-    
-    if strcmp(ptLoc,'25')
-        pSty = '-';
-    elseif strcmp(ptLoc,'24')
-        pSty = '--';
-    elseif strcmp(ptLoc,'23')
-        pSty = ':';
-    else
-        pSty = '-.';
-    end
+
+%distinguish institutions of pt   
+%    if strcmp(ptLoc,'25')
+%        pSty = '-';
+%    elseif strcmp(ptLoc,'24')
+%        pSty = '--';
+%    elseif strcmp(ptLoc,'23')
+%        pSty = ':';
+%    else
+%        pSty = '-.';
+%    end
  
-    h(i) = plot(timeD, sumOut_sec{1,i}/86400,'Color',cc(i,:),'LineWidth',2);
+    h(i) = plot(timeD, sumOut_sec{1,i}/86400,'Color',cc(i,:),'LineStyle',pSty,'LineWidth',2);
     hold all;
 end
 
