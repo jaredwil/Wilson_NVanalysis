@@ -38,7 +38,7 @@ for i = 1:length(pt)
     
     [alphaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'alpha',15,labelAlpha,[0 60*day], hour,  1);
     [betaP{i}, numNan{i}]  = calcBandPower(session.data, ch ,'beta',15,labelBeta,[0 60*day], hour,  1);
-    [gammaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'gamma',15,labelGamma,[0 60*day], hour,  1);
-    [thetaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'theta',15,labelTheta,[0 60*day], hour,  1);
+    %[gammaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'gamma',15,labelGamma,[0 60*day], hour,  1);
+    %[thetaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'theta',15,labelTheta,[0 60*day], hour,  1);
 
 end
