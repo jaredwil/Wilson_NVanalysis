@@ -46,7 +46,7 @@ for i = 1:length(ll)
        end
         
     end
-%     dayEnergy(i,:) = mean(tmpEnergy,1);
+%   dayEnergy(i,:) = mean(tmpEnergy,1);
 %   plot(energy{i})
 end
 

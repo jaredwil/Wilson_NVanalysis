@@ -1,6 +1,8 @@
 close all;
 clc;
 
+addpath(genpath('NVanalysis_data'))
+
 load('timeTest.mat')
 par12 = load('par12.mat');
 par12 = par12.timePar;

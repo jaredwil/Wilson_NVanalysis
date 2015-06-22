@@ -23,7 +23,7 @@ thetaP = cell(length(pt),1);
 
 numNan = cell(length(pt),1);
 ch = 1:16;
-
+parpool(8);
 
 for i = 1:length(pt)
     disp(['Progress: ' num2str(i) '/15'])

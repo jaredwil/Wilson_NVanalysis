@@ -3,7 +3,7 @@ function [feat, numNan] = calcFeature_wil(datasets,channels,feature,winLen,outLa
 %       This function is used for feature extraction over long data sets
 %       able to select parflag to run processes in paralell.
 %
-% Author: Jared Wilson
+% Author: Jared Wilson 
 % 4/8/15 v1 working
 %
 % NOTE: This function is a derivative of calcFeature function developed by
@@ -71,13 +71,6 @@ ZCFn = @(x) sum((x(1:end-1,:)>repmat(mean(x),size(x,1)-1,1)) & x(2:end,:)<repmat
 LLFn = @(x) mean(abs(diff(x)));
 LLFn2 = @(X, winLen) conv2(abs(diff(X,1)),  repmat(1/winLen,winLen,1),'same');
 
-%Important Const.
-%freq Ranges of interest
-alpha = [8; 12];
-beta = [12; 27];
-gamma = [27; 45];
-theta = [3 ;8];
-delta = [0.2; 3];
 
 %% Initialization
 feature = lower(feature);
@@ -112,10 +105,13 @@ if parFlag    %if flag is set do processing in parallel
         end
         
         %% Feature extraction loop
-        %%%%%ESTABLISH MULTIPLE SESSIONS HERE!!!!!!!!!!!!%%%%%%%%%%%%%
-        numPar = 6;     %This value is currenlty defined should be modifiable
+        %paralell variables
+        %Number of workers is determined by the pool that is set. This
+        %determines the number of tasks that will be allocated to each
+        %worker
+        numPar = 6;     
         username = 'jaredwil'; % <<< These values should also be inputs somehow???
-        pswd = 'jar_ieeglogin.bin';% <<<<<<<
+        pswd = 'jar_ieeglogin.bin';% <<  ^^
 
         %determine number of blocks per parallel session
         parBlocks = floor(numBlocks/numPar);
@@ -132,7 +128,6 @@ if parFlag    %if flag is set do processing in parallel
         parfor p = 1:numPar
                 %warning('off')
                 %Initilize variable to be used specifically in each proc.
-                reverseStr = '';
                 parfeat = cell(parBlocks,1);
                 parnumNan = cell(parBlocks,1);
                 
@@ -148,10 +143,16 @@ if parFlag    %if flag is set do processing in parallel
                 endBlockPt = min(blockLenSecs*j*fs,numPoints)+ startSec*fs;
                 endBlockPt = endBlockPt + parOffset*(p-1);
                 
-                
-                blockData = parData.getvalues(startBlockPt:endBlockPt,channels);
-
-
+                err = 0;
+                %try to get data ten times this is to prevent timeouts
+                while err < 10
+                    try    
+                        blockData = parData.getvalues(startBlockPt:endBlockPt,channels);
+                        break;
+                    catch
+                        err = err + 1    
+                    end
+                end
 
                 %%%%%DO a check to see if the entire block is Nan if this is
                 %%%%%true then skip this block. Ideally returning an indication
