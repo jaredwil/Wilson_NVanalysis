@@ -179,24 +179,10 @@ if parFlag    %if flag is set do processing in parallel
                         %Find number of Nan
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
 
-                        idxN = isnan(blockNan(startWinPt:endWinPt,1));  %find all indices with Nan
-                        x = [0; cumsum(diff(idxN)~=1)];                 %find consecutive outs
+                        idxN = find(isnan(blockNan(startWinPt:endWinPt,1) == 0));  %find all indices without Nan
+                        x = [0; cumsum(diff(idxN)~=1)];                 %find consecutive non Nan values
 
-                        %number of consecutive outs
-                        numOut = max(x)+1;                                  
-                        idxStart = ones(numOut,1);    %start ind                
-                        idxEnd = ones(numOut,1);      %end ind
-                        idxEnd(end) = length(x);      %last end point is end
-
-                        %find all start and end index of outage
-                        idxEnd(1:end-1) = find(diff(x) > 0);
-                        idxStart(2:end) = find(diff(x) > 0) + 1;
-
-                        %Start/end/and length of outage
-                        startT = idxN(idxStart);   %values are not really time
-                        endT = idxN(idxEnd);
-                        outLen = (endT - startT);
-
+                        
                         %check to see if there are any outages if there are
                         %not then proceed normally else do computation to
                         %componsate for Nans
@@ -219,7 +205,20 @@ if parFlag    %if flag is set do processing in parallel
                                     tmpFeat(n,:) = EnergyFn(y);
                             end
                         else
-                            
+                            %number of consecutive outs
+                       	    numOut = max(x)+1;                                  
+                            idxStart = ones(numOut,1);    %start ind                
+                            idxEnd = ones(numOut,1);      %end ind
+                            idxEnd(end) = length(x);      %last end point is end
+
+                            %find all start and end index of outage
+                            idxEnd(1:end-1) = find(diff(x) > 0);
+                            idxStart(2:end) = find(diff(x) > 0) + 1;
+
+                            %Start/end/and length of outage
+                            startT = idxN(idxStart);   %values are not really time
+                            endT = idxN(idxEnd);
+                            outLen = (endT - startT);
                             switch feature
                                 case 'power'
                                     for c = 1:nChan
@@ -234,7 +233,7 @@ if parFlag    %if flag is set do processing in parallel
                                     k = 1;
                                     winFeat = [];
                                     for goodWin = 1:numOut
-                                        if outLen(goodWin) > 10
+                                        if outLen(goodWin) > 5
                                         tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
                                         winFeat(k,:) = LLFn(tmp);
                                         k = k + 1;
@@ -247,7 +246,7 @@ if parFlag    %if flag is set do processing in parallel
                                     k = 1;
                                     winFeat = [];
                                     for goodWin = 1:numOut
-                                        if outLen(goodWin) > 10
+                                        if outLen(goodWin) > 5
                                         tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
                                         winFeat(k,:) = EnergyFn(tmp);
                                         k = k + 1;
@@ -361,8 +360,8 @@ else          %do normal processing if flag is not set
                         %Since all Nan set to 0 look for 0's instead of NaN
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
                         
-                        idxN = find(isnan(blockNan(startWinPt:endWinPt,1) == 1));  %find all indices with Nan
-                        x = [0; cumsum(diff(idxN)~=1)];                 %find consecutive outs
+                        idxN = find(isnan(blockNan(startWinPt:endWinPt,1) == 0));  %find all indices without Nan
+                        x = [0; cumsum(diff(idxN)~=1)];                 %find consecutive non Nan values
                         
                         %check to see if there are any outages if there are
                         %not then proceed normally else do computation to
@@ -386,6 +385,21 @@ else          %do normal processing if flag is not set
                                     tmpFeat(n,:) = EnergyFn(y);
                             end
                         else
+                            %number of consecutive outs
+                       	    numOut = max(x)+1;                                  
+                            idxStart = ones(numOut,1);    %start ind                
+                            idxEnd = ones(numOut,1);      %end ind
+                            idxEnd(end) = length(x);      %last end point is end
+
+                            %find all start and end index of outage
+                            idxEnd(1:end-1) = find(diff(x) > 0);
+                            idxStart(2:end) = find(diff(x) > 0) + 1;
+
+                            %Start/end/and length of outage
+                            startT = idxN(idxStart);   %values are not really time
+                            endT = idxN(idxEnd);
+                            outLen = (endT - startT);
+
                             switch feature
                                 case 'power'
                                     for c = 1:nChan
@@ -400,7 +414,7 @@ else          %do normal processing if flag is not set
                                     k = 1;
                                     winFeat = [];
                                     for goodWin = 1:numOut
-                                        if outLen(goodWin) > 10
+                                        if outLen(goodWin) > 0
                                         tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
                                         winFeat(k,:) = LLFn(tmp);
                                         k = k + 1;
@@ -413,7 +427,7 @@ else          %do normal processing if flag is not set
                                     k = 1;
                                     winFeat = [];
                                     for goodWin = 1:numOut
-                                        if outLen(goodWin) > 10
+                                        if outLen(goodWin) > 0
                                         tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
                                         winFeat(k,:) = EnergyFn(tmp);
                                         k = k + 1;

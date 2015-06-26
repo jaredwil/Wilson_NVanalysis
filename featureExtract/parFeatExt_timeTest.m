@@ -20,6 +20,8 @@ testN = [1 2 3 4 5 10 15 20 25 30 35 40 45 50 60 70 80 90 100 125 150 200];
 timePar    = zeros(length(testN),1);
 timeNotPar = zeros(length(testN),1);
 check      = zeros(length(testN),1);
+parpool(8);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 1 day %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for i = 1:length(testN)
     tic;
