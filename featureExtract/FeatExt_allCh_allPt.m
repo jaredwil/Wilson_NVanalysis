@@ -6,6 +6,8 @@ clear all; close all; clc;
 warning('off')
 addpath(genpath('ieeg-matlab-1.8.3'))
 
+profile on
+
 pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
     'NVC1001_25_005' 'NVC1001_24_001' 'NVC1001_24_002' 'NVC1001_24_004' ...
     'NVC1001_24_005' 'NVC1001_23_002' 'NVC1001_23_003' 'NVC1001_23_004' ...
@@ -22,17 +24,16 @@ numNan = cell(length(pt),1);
 ch = 1:16;
 
 
-for i = 1 %:length(pt)
+for i = 1:length(pt)
     disp(['Progress: ' num2str(i) '/14'])
     %Start Session
     session = IEEGSession(pt{i},'jaredwil','jar_ieeglogin.bin') ;
     fs = session.data.sampleRate;               %Find sampling Rate
 
-    labelLL = 'LL_allCh_2Monthsv2';
-    labelEnergy = 'Energy_allCh_2Monthsv2';
+    labelLL = 'LL_allCh_2Months_Scaled';
+    labelEnergy = 'Energy_allCh_2Months_Scaled';
 
-    [ll{i}, numNan{i}] = calcFeature_wil(session.data, ch ,'ll',15*min, labelLL,[0 60*day], 2*hour,  1);
-    [energy{i}, numNan{i}] = calcFeature_wil(session.data, ch ,'energy',15*min, labelEnergy,[0 60*day], 2*hour,  1);
-
+    [ll{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'ll', min, labelLL,[0 60*day], hour,  1);
+    [energy{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'energy', min, labelEnergy,[0 60*day], hour,  1);
 
 end

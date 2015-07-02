@@ -179,7 +179,7 @@ if parFlag    %if flag is set do processing in parallel
                         %Find number of Nan
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
 
-                        idxN = find(isnan(blockNan(startWinPt:endWinPt,1) == 0));  %find all indices without Nan
+                        idxN = find(isnan(blockNan(startWinPt:endWinPt,1)) == 0);  %find all indices without Nan
                         x = [0; cumsum(diff(idxN)~=1)];                 %find consecutive non Nan values
 
                         
@@ -360,7 +360,7 @@ else          %do normal processing if flag is not set
                         %Since all Nan set to 0 look for 0's instead of NaN
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
                         
-                        idxN = find(isnan(blockNan(startWinPt:endWinPt,1) == 0));  %find all indices without Nan
+                        idxN = find(isnan(blockNan(startWinPt:endWinPt,1)) == 0);  %find all indices without Nan
                         x = [0; cumsum(diff(idxN)~=1)];                 %find consecutive non Nan values
                         
                         %check to see if there are any outages if there are
