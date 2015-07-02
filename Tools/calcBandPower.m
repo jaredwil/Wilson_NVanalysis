@@ -192,13 +192,20 @@ if parFlag    %if flag is set do processing in parallel
                         endWinPt = round(min(winLen*n*fs,size(blockData,1)));
                         %Since all Nan set to 0 look for 0's instead of NaN
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
+                        totSamp = winLen*fs;
 
                         switch band
                             case 'alpha'
                                 for c = 1:nChan
                                     y = blockData(startWinPt:endWinPt,c);
                                     [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                    
+                                    %scale
+                                    if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                    tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                    else
                                     tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd');
+                                    end                                     
                                 end
                             case 'beta'
                                 for c = 1:nChan
@@ -324,13 +331,20 @@ else          %do normal processing if flag is not set
                     endWinPt = round(min(winLen*n*fs,size(blockData,1)));
                     %Since all Nan set to 0 look for 0's instead of NaN
                     tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
-
+                    
+                    totSamp = winLen*fs;
                     switch band
                         case 'alpha'
                             for c = 1:nChan
                                 y = blockData(startWinPt:endWinPt,c);
                                 [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                
+                                %scale
+                                if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                else
                                 tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd');
+                                end
                             end
                         case 'beta'
                             for c = 1:nChan

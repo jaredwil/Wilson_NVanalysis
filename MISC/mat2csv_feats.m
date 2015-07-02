@@ -9,7 +9,7 @@ clear all
 clc;
 
 %MAKE SURE these values are correct
-winSize = 15;  %seconds
+winSize = 1;  %seconds
 
 addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data'))
 pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
@@ -17,7 +17,7 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
     'NVC1001_24_005' 'NVC1001_23_002' 'NVC1001_23_003' 'NVC1001_23_004' ...
     'NVC1001_23_005' 'NVC1001_23_006' 'NVC1001_23_007'};
 
-labelLL = [pt{1} '__LL_allCh_2Months.mat'];
+labelLL = [pt{1} '_LL_allCh_2Months_Scaled.mat'];
 
 llTest = load(labelLL);
 llTest = llTest.feat;
@@ -35,14 +35,14 @@ timeALL = [];
 for ptNum = 1:length(pt)
     curPt = pt{ptNum};
     
-    labelLL = [pt{ptNum} '__LL_allCh_2Months.mat'];
-    labelEn = [pt{ptNum} '__Energy_allCh_2Months.mat'];
+    labelLL = [pt{ptNum} '_LL_allCh_2Months_Scaled.mat'];
+    labelEn = [pt{ptNum} '_Energy_allCh_2Months_Scaled.mat'];
     
     ll = load(labelLL);
     ll = ll.feat;
     energy = load(labelEn);
     energy = energy.feat;
-    time = linspace(15,size(ll,1)*15,size(ll,1));
+    time = linspace(1,size(ll,1)*1,size(ll,1));
     
     
     llAvg     = mean(ll,2);
