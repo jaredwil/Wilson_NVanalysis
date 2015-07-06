@@ -37,8 +37,8 @@ for i = 1:length(pt)
     labelTheta = 'thetaBP_allCh_2Months';
     
     [alphaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'alpha',min,labelAlpha,[0 60*day], hour,  1);
-%    [betaP{i}, numNan{i}]  = calcBandPower(session.data, ch ,'beta',15,labelBeta,[0 60*day], hour,  1);
-    %[gammaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'gamma',15,labelGamma,[0 60*day], hour,  1);
-    %[thetaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'theta',15,labelTheta,[0 60*day], hour,  1);
+%    [betaP{i}, numNan{i}]  = calcBandPower(session.data, ch ,'beta',min,labelBeta,[0 60*day], hour,  1);
+    [gammaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'gamma',min,labelGamma,[0 60*day], hour,  1);
+    %[thetaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'theta',min,labelTheta,[0 60*day], hour,  1);
 
 end

@@ -211,25 +211,45 @@ if parFlag    %if flag is set do processing in parallel
                                 for c = 1:nChan
                                     y = blockData(startWinPt:endWinPt,c);
                                     [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                    %scale
+                                    if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                    tmpFeat(n,c) = bandpower(PSD,F,beta,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                    else
                                     tmpFeat(n,c) = bandpower(PSD,F,beta,'psd');
+                                    end   
                                 end
                             case 'gamma'
                                 for c = 1:nChan
                                     y = blockData(startWinPt:endWinPt,c);
                                     [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                    %scale
+                                    if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                    tmpFeat(n,c) = bandpower(PSD,F,gamma,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                    else
                                     tmpFeat(n,c) = bandpower(PSD,F,gamma,'psd');
+                                    end 
                                 end
                             case 'theta'
                                 for c = 1:nChan
                                     y = blockData(startWinPt:endWinPt,c);
                                     [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                    %scale
+                                    if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                    tmpFeat(n,c) = bandpower(PSD,F,theta,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                    else
                                     tmpFeat(n,c) = bandpower(PSD,F,theta,'psd');
+                                    end 
                                 end
                             case 'delta'
                                 for c = 1:nChan
                                     y = blockData(startWinPt:endWinPt,c);
                                     [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                    %scale
+                                    if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                    tmpFeat(n,c) = bandpower(PSD,F,delta,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                    else
                                     tmpFeat(n,c) = bandpower(PSD,F,delta,'psd');
+                                    end 
                                 end                                        
                         end
                     end
@@ -338,38 +358,58 @@ else          %do normal processing if flag is not set
                             for c = 1:nChan
                                 y = blockData(startWinPt:endWinPt,c);
                                 [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                
+
                                 %scale
                                 if((1 - tmpNan(n,c)/totSamp) ~= 0)
                                 tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd')/(1 - tmpNan(n,c)/totSamp);
                                 else
                                 tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd');
-                                end
+                                end                                     
                             end
                         case 'beta'
                             for c = 1:nChan
                                 y = blockData(startWinPt:endWinPt,c);
                                 [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                %scale
+                                if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                tmpFeat(n,c) = bandpower(PSD,F,beta,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                else
                                 tmpFeat(n,c) = bandpower(PSD,F,beta,'psd');
+                                end   
                             end
                         case 'gamma'
                             for c = 1:nChan
                                 y = blockData(startWinPt:endWinPt,c);
                                 [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                %scale
+                                if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                tmpFeat(n,c) = bandpower(PSD,F,gamma,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                else
                                 tmpFeat(n,c) = bandpower(PSD,F,gamma,'psd');
+                                end 
                             end
                         case 'theta'
                             for c = 1:nChan
                                 y = blockData(startWinPt:endWinPt,c);
                                 [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                %scale
+                                if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                tmpFeat(n,c) = bandpower(PSD,F,theta,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                else
                                 tmpFeat(n,c) = bandpower(PSD,F,theta,'psd');
+                                end 
                             end
                         case 'delta'
                             for c = 1:nChan
                                 y = blockData(startWinPt:endWinPt,c);
                                 [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                                %scale
+                                if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                tmpFeat(n,c) = bandpower(PSD,F,delta,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                else
                                 tmpFeat(n,c) = bandpower(PSD,F,delta,'psd');
-                            end                                        
+                                end 
+                            end                                         
                     end
                 end
                 
