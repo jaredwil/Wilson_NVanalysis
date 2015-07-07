@@ -17,7 +17,7 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
     'NVC1001_24_005' 'NVC1001_23_002' 'NVC1001_23_003' 'NVC1001_23_004' ...
     'NVC1001_23_005' 'NVC1001_23_006' 'NVC1001_23_007'};
 
-labelLL = [pt{1} '_LL_allCh_2Months_Scaled.mat'];
+labelLL = [pt{1} '_gammaBP_allCh_2Months.mat'];
 
 llTest = load(labelLL);
 llTest = llTest.feat;
@@ -29,31 +29,41 @@ llStdALL = zeros(sca*length(pt),1);
 energyAvgALL = zeros(sca*length(pt),1);
 energyStdALL = zeros(sca*length(pt),1);
 
+gammaAvgALL = zeros(sca*length(pt),1);
+gammaStdALL = zeros(sca*length(pt),1);
+
 ptID = [];
 ptLoc = [];
 timeALL = [];
 for ptNum = 1:length(pt)
     curPt = pt{ptNum};
     
-    labelLL = [pt{ptNum} '_LL_allCh_2Months_Scaled.mat'];
-    labelEn = [pt{ptNum} '_Energy_allCh_2Months_Scaled.mat'];
+%     labelLL = [pt{ptNum} '_LL_allCh_2Months_Scaled.mat'];
+%     labelEn = [pt{ptNum} '_Energy_allCh_2Months_Scaled.mat'];
+    labelGamma = [pt{ptNum} '_gammaBP_allCh_2Months.mat'];
     
-    ll = load(labelLL);
-    ll = ll.feat;
-    energy = load(labelEn);
-    energy = energy.feat;
-    time = linspace(1,size(ll,1)*1,size(ll,1));
+%     ll = load(labelLL);
+%     ll = ll.feat;
+%     energy = load(labelEn);
+%     energy = energy.feat;
+    gamma = load(labelGamma);
+    gamma = gamma.feat;
+    time = linspace(1,size(gamma,1)*1,size(gamma,1));
     
     
-    llAvg     = mean(ll,2);
-    llStd     = std(ll,[],2);
-    energyAvg = mean(energy,2);
-    energyStd = std(energy,[],2);
+%     llAvg     = mean(ll,2);
+%     llStd     = std(ll,[],2);
+%     energyAvg = mean(energy,2);
+%     energyStd = std(energy,[],2);
+    gammaAvg     = mean(gamma,2);
+    gammaStd     = std(gamma,[],2);
    
-    llAvgALL((ptNum-1)*sca +1:ptNum*sca)     = llAvg;
-    llStdALL((ptNum-1)*sca +1:ptNum*sca)     = llStd;
-    energyAvgALL((ptNum-1)*sca +1:ptNum*sca) = energyAvg;
-    energyStdALL((ptNum-1)*sca +1:ptNum*sca) = energyStd;
+%     llAvgALL((ptNum-1)*sca +1:ptNum*sca)     = llAvg;
+%     llStdALL((ptNum-1)*sca +1:ptNum*sca)     = llStd;
+%     energyAvgALL((ptNum-1)*sca +1:ptNum*sca) = energyAvg;
+%     energyStdALL((ptNum-1)*sca +1:ptNum*sca) = energyStd;
+    gammaAvgALL((ptNum-1)*sca +1:ptNum*sca)     = gammaAvg;
+    gammaStdALL((ptNum-1)*sca +1:ptNum*sca)     = gammaStd;
     
     ID = repmat(str2num(curPt(12:14)),1,sca);
     Loc = repmat(str2num(curPt(9:10)),1,sca);
@@ -64,9 +74,11 @@ for ptNum = 1:length(pt)
     
     
     %write the features for each pt. into their own separate csv file
-    featPt = [Loc' ID' time' llAvg llStd energyAvg energyStd];
+%     featPt = [Loc' ID' time' llAvg llStd energyAvg energyStd];
+    featPt = [Loc' ID' time' gammaAvg gammaStd];
+
     
-    label = ['feats_' pt{ptNum} '.csv']
+    label = ['gammaBP_' pt{ptNum} '.csv']
     csvwrite(label,featPt)
     
 end

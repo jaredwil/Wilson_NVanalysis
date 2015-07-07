@@ -72,6 +72,7 @@ LLFn = @(x) mean(abs(diff(x)));
 LLFn2 = @(X, winLen) conv2(abs(diff(X,1)),  repmat(1/winLen,winLen,1),'same');
 
 
+
 %% Initialization
 feature = lower(feature);
 %blockLenSecs = 3600; %get data in blocks (use as defult)
@@ -200,6 +201,9 @@ if parFlag    %if flag is set do processing in parallel
                                 case 'll'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = LLFn(y);
+                                case 'area'
+                                    y = blockData(startWinPt:endWinPt,1:nChan);
+                                    tmpFeat(n,:) = AreaFn(y);
                                 case 'energy'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = EnergyFn(y);
@@ -241,7 +245,18 @@ if parFlag    %if flag is set do processing in parallel
                                     end
                                     %y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = mean(winFeat,1);
-
+                                case 'area'
+                                    k = 1;
+                                    winFeat = [];
+                                    for goodWin = 1:numOut
+                                        if outLen(goodWin) > 5
+                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
+                                        winFeat(k,:) = AreaFn(tmp);
+                                        k = k + 1;
+                                        end
+                                    end
+                                    %y = blockData(startWinPt:endWinPt,1:nChan);
+                                    tmpFeat(n,:) = mean(winFeat,1);
                                 case 'energy'
                                     k = 1;
                                     winFeat = [];
@@ -380,6 +395,9 @@ else          %do normal processing if flag is not set
                                 case 'll'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = LLFn(y);
+                                case 'area'
+                                    y = blockData(startWinPt:endWinPt,1:nChan);
+                                    tmpFeat(n,:) = AreaFn(y);
                                 case 'energy'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = EnergyFn(y);
@@ -422,7 +440,18 @@ else          %do normal processing if flag is not set
                                     end
                                     %y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = mean(winFeat,1);
-
+                                case 'area'
+                                    k = 1;
+                                    winFeat = [];
+                                    for goodWin = 1:numOut
+                                        if outLen(goodWin) > 5
+                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
+                                        winFeat(k,:) = AreaFn(tmp);
+                                        k = k + 1;
+                                        end
+                                    end
+                                    %y = blockData(startWinPt:endWinPt,1:nChan);
+                                    tmpFeat(n,:) = mean(winFeat,1);
                                 case 'energy'
                                     k = 1;
                                     winFeat = [];

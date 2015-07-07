@@ -1,9 +1,13 @@
 rm(list = ls())  #clear workspace
 
-setwd("C:/Users/Jared/Dropbox/NVanalysis_data/allCh_2months_OneminWinFeats")
+setwd("C:/Users/Jared/Dropbox/NVanalysis_data/allCh_2months_OneminWinFeats/csv")
 
-featData = read.table("all_ptFeat.csv",header=FALSE, sep=",")
-names(featData) = c('Hospital','PatientID','Time','AvgLL','StdLL','AvgEnergy','StdEnergy')
+featData = read.table("LLEnergy_allPt.csv",header=FALSE, sep=",")
+gammaData = read.table("gammaBP_allPt.csv",header=FALSE, sep=",")
+
+featData = cbind(featData,gammaData[,4:5])
+
+names(featData) = c('Hospital','PatientID','Time','AvgLL','StdLL','AvgEnergy','StdEnergy','AvgGamma','StdGamma')
 #make patient ID unique since multiple per hospital
 featData$PatientID = featData$Hospital*featData$PatientID 
 featData$Hospital = as.factor(featData$Hospital)
@@ -13,11 +17,10 @@ foo = 1:nrow(featData)
 #Downsample by M = 60
 i = 1
 idxToKeep = c(1,foo[1:(i+59)==(i+59)]) #take every 60th sample
-#newData = featData[idxToKeep,]         
-newData = featData
-LogData = featData[idxToKeep,]         
+newData = featData[idxToKeep,]         
+#newData = featData
+logData = featData[idxToKeep,]         
 fullData = featData
-
 
 
 #Take log of avgLL and avgEnergy
@@ -55,29 +58,80 @@ library(lme4)
 # of the residual variance
 #http://users.stat.umn.edu/~gary/classes/5303/handouts/REML.pdf
 
-#mod = lmer(AvgLL ~ Time + (1|PatientID) + (1|Hospital),REML=TRUE,data=newData)
-#mod.null = lmer(AvgLL ~ (1|PatientID) + (1|Hospital),REML=TRUE,data=newData)
+####Line Length
+
+# mod = lmer(AvgLL ~ Time + (1|PatientID) + (1|Hospital),REML=TRUE,data=newData)
+# mod.null = lmer(AvgLL ~ (1|PatientID) + (1|Hospital),REML=TRUE,data=newData)
 mod = lmer(AvgLL ~ Time + (1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
 mod.null = lmer(AvgLL ~ (1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
 anova(mod.null,mod) #LRT
-
+ 
 hist(residuals(mod),breaks=1000)
 boxplot(residuals(mod))
 plot(residuals(mod),newData$AvgLL)
 plot(fitted(mod),newData$AvgLL)
 
-#Energy
+plot(newData$Time,residuals(mod))#ylim=c(-10, 10))
+plot(newData$Time,fitted(mod)) 
+
+
+#####Energy
+
 mod = lmer(AvgEnergy ~ Time + (1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
 mod.null = lmer(AvgEnergy ~ (1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
 anova(mod.null,mod) #LRT
 
+hist(residuals(mod),breaks=1000)
+boxplot(residuals(mod))
+plot(residuals(mod),newData$AvgEnergy)
+plot(fitted(mod),newData$AvgEnergy)
+
+plot(newData$Time,residuals(mod))#ylim=c(-10, 10))
+plot(newData$Time,fitted(mod)) 
+
+
+####Gamma Power
+
+mod = lmer(AvgGamma ~ Time + (1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
+mod.null = lmer(AvgGamma ~ (1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
+anova(mod.null,mod) #LRT
+
+hist(residuals(mod),breaks=1000)
+boxplot(residuals(mod))
+plot(residuals(mod),newData$AvgGamma)
+plot(fitted(mod),newData$AvgGamma)
+
+plot(newData$Time,residuals(mod)) #,ylim=c(-30, 30))
+plot(newData$Time,fitted(mod)) 
 
 #random slope and intercept
 #mod = lmer(AvgLL ~ Time + (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
 #mod.null = lmer(AvgLL ~ (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
 
-mod = lmer(AvgLL ~ Time + (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
-mod.null = lmer(AvgLL ~ (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
+mod = lmer(AvgLL ~ Time + (1|PatientID) + (1+Time|PatientID) + (1|Hospital),REML=FALSE,data=newData)
+mod.null = lmer(AvgLL ~ (1|PatientID) + (1+Time|PatientID) + (1|Hospital),REML=FALSE,data=newData)
 
 anova(mod.null,mod) #LRT 
+
+#Gamma
+mod = lmer(AvgGamma ~ Time + (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
+mod.null = lmer(AvgGamma ~ (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
+
+anova(mod.null,mod) #LRT 
+
+hist(residuals(mod),breaks=1000)
+boxplot(residuals(mod))
+plot(residuals(mod),newData$AvgGamma)
+plot(fitted(mod),newData$AvgGamma,ylim=c(0, 200))
+
+plot(newData$Time,residuals(mod),ylim=c(-30, 30))
+plot(newData$Time,fitted(mod)) 
+
+
+
+
+
+
+
+
 
