@@ -23,7 +23,6 @@ thetaP = cell(length(pt),1);
 
 numNan = cell(length(pt),1);
 ch = 1:16;
-parpool(8);
 
 for i = 1:length(pt)
     disp(['Progress: ' num2str(i) '/14'])
@@ -36,9 +35,9 @@ for i = 1:length(pt)
     labelGamma = 'gammaBP_allCh_2Months';
     labelTheta = 'thetaBP_allCh_2Months';
     
-    [alphaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'alpha',min,labelAlpha,[0 60*day], hour,  1);
+%    [alphaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'alpha',min,labelAlpha,[0 60*day], hour,  1);
 %    [betaP{i}, numNan{i}]  = calcBandPower(session.data, ch ,'beta',min,labelBeta,[0 60*day], hour,  1);
-    [gammaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'gamma',min,labelGamma,[0 60*day], hour,  1);
+     [gammaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'gamma',min,labelGamma,[0 60*day], hour,  1);
     %[thetaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'theta',min,labelTheta,[0 60*day], hour,  1);
 
 end
