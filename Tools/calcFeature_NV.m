@@ -65,7 +65,8 @@ function [feat, numNan] = calcFeature_NV(datasets,channels,feature,winLen,outLab
 %% Anonymous functions
 CalcNumWins = @(xLen, fs, winLen, winDisp)floor((xLen-(winLen-winDisp)*fs)/(winDisp*fs));
 DCNCalc = @(data) (1+(cond(data)-1)/size(data,2)); % DCN feature
-AreaFn = @(x) mean(abs(x),1);
+AmpFn = @(x) mean(abs(x),1);
+AreaFn = @(x) sum(abs(x),1);
 EnergyFn = @(x) mean(x.^2,1);
 ZCFn = @(x) sum((x(1:end-1,:)>repmat(mean(x),size(x,1)-1,1)) & x(2:end,:)<repmat(mean(x),size(x,1)-1,1) | (x(1:end-1,:)<repmat(mean(x),size(x,1)-1,1) & x(2:end,:)>repmat(mean(x),size(x,1)-1,1)));
 LLFn = @(x) mean(abs(diff(x)));
@@ -201,6 +202,9 @@ if parFlag    %if flag is set do processing in parallel
                                 case 'll'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = LLFn(y);
+                                case 'amp'
+                                    y = blockData(startWinPt:endWinPt,1:nChan);
+                                    tmpFeat(n,:) = AmpFn(y);
                                 case 'area'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = AreaFn(y);
@@ -243,7 +247,17 @@ if parFlag    %if flag is set do processing in parallel
                                         k = k + 1;
                                         end
                                     end
-                                    %y = blockData(startWinPt:endWinPt,1:nChan);
+                                    tmpFeat(n,:) = mean(winFeat,1);
+                                case 'amp'
+                                    k = 1;
+                                    winFeat = [];
+                                    for goodWin = 1:numOut
+                                        if outLen(goodWin) > 5
+                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
+                                        winFeat(k,:) = AmpFn(tmp);
+                                        k = k + 1;
+                                        end
+                                    end
                                     tmpFeat(n,:) = mean(winFeat,1);
                                 case 'area'
                                     k = 1;
@@ -255,8 +269,7 @@ if parFlag    %if flag is set do processing in parallel
                                         k = k + 1;
                                         end
                                     end
-                                    %y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = mean(winFeat,1);
+                                    tmpFeat(n,:) = mean(winFeat,1);                                    
                                 case 'energy'
                                     k = 1;
                                     winFeat = [];
@@ -395,9 +408,12 @@ else          %do normal processing if flag is not set
                                 case 'll'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = LLFn(y);
+                                case 'amp'
+                                    y = blockData(startWinPt:endWinPt,1:nChan);
+                                    tmpFeat(n,:) = AmpFn(y);
                                 case 'area'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = AreaFn(y);
+                                    tmpFeat(n,:) = AreaFn(y);                                    
                                 case 'energy'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = EnergyFn(y);
@@ -438,7 +454,17 @@ else          %do normal processing if flag is not set
                                         k = k + 1;
                                         end
                                     end
-                                    %y = blockData(startWinPt:endWinPt,1:nChan);
+                                    tmpFeat(n,:) = mean(winFeat,1);
+                                case 'amp'
+                                    k = 1;
+                                    winFeat = [];
+                                    for goodWin = 1:numOut
+                                        if outLen(goodWin) > 5
+                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
+                                        winFeat(k,:) = AmpFn(tmp);
+                                        k = k + 1;
+                                        end
+                                    end
                                     tmpFeat(n,:) = mean(winFeat,1);
                                 case 'area'
                                     k = 1;
@@ -450,8 +476,7 @@ else          %do normal processing if flag is not set
                                         k = k + 1;
                                         end
                                     end
-                                    %y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = mean(winFeat,1);
+                                    tmpFeat(n,:) = mean(winFeat,1);                                    
                                 case 'energy'
                                     k = 1;
                                     winFeat = [];

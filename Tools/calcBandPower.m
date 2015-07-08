@@ -1,4 +1,4 @@
-function [feat, numNan] = calcBandPower(datasets,channels,band,winLen,outLabel,runIndex,blockLenSecs,parFlag,varargin)
+function [alpha,beta,gamma,theta,delta,numNan] = calcBandPower(datasets,channels,band,winLen,outLabel,runIndex,blockLenSecs,parFlag,varargin)
 %  [feat, numNan] = calcFeature_wil(datasets,channels,feature,winLen,outLabel,runIndex,blockLenSecs,parFlag,varargin)
 %       This function is used for feature extraction over long data sets
 %       able to select parflag to run processes in paralell.
@@ -8,11 +8,11 @@ function [feat, numNan] = calcBandPower(datasets,channels,band,winLen,outLabel,r
 %
 % NOTE: This function is a derivative of calcFeature function developed by
 % Hoameng Ung
-%Usage: calcFeature(datasets,channels,feature,winLen,outLabel,filtFlag,varargin)
-%This function will divide IEEGDataset channels into blocks of
-%and within these blocks further divide into winLen. Features
-%will be calculated for each winLen and saved in a .mat matrix.
-%Features calculated: power, LL, DCN
+% Usage: calcFeature(datasets,channels,feature,winLen,outLabel,filtFlag,varargin)
+% This function will divide IEEGDataset channels into blocks of
+% and within these blocks further divide into winLen. Features
+% will be calculated for each winLen and saved in a .mat matrix.
+% Features calculated: power, LL, DCN
 %
 % Parallel Processing Usage: if parFlag set multiple sessions are
 % established to pull data blocks simultaneosuly
@@ -32,8 +32,9 @@ function [feat, numNan] = calcBandPower(datasets,channels,band,winLen,outLabel,r
 %   can be set to improve efficieny. (seconds)
 %   'parFlag'       :   [0/1] 1: parallel processing (parfor) will be used
 %   to increase speed
-%   'band'         :   String input to define band of interest. Supported
-%   bands are:
+%%%%%%%%%%%%%%%%%%%%%%%NOT REALLY USED%%%%%%%%%%%%%%%%%%%%
+%   'band'         :  binary String input to define band of interest. Supported
+%   bands in order are:  abgtd (xxxxx)  
 %               alpha: 8-12 Hz
 %                beta: 12-27 Hz
 %               gamma: 27-45 Hz
@@ -81,11 +82,13 @@ LLFn2 = @(X, winLen) conv2(abs(diff(X,1)),  repmat(1/winLen,winLen,1),'same');
 
 %Important Const.
 %freq Ranges of interest
-alpha = [8 12];
-beta = [12 27];
-gamma = [27 45];
-theta = [3 8];
-delta = [0.2 3];
+alphaB = [8 12];
+betaB = [12 27];
+gammaB = [27 45];
+thetaB = [3 8];
+% delta = [0.2 3];
+deltaB = [0 4];
+
 
 %% Initialization
 band = lower(band);
@@ -131,10 +134,24 @@ if parFlag    %if flag is set do processing in parallel
         %off set index for each processor
         parOffset = parBlocks*blockLenSecs*fs;
         parFeat = cell(numPar,1);
+        
+        parAlpha = cell(numPar,1);
+        parBeta = cell(numPar,1);
+        parGamma = cell(numPar,1);
+        parTheta = cell(numPar,1);
+        parDelta = cell(numPar,1);
+        
         parNan = cell(numPar,1);
         
         %%%REC CHANGE
         featTot = cell(parBlocks*numPar,1);
+        
+        featAlpha = cell(parBlocks*numPar,1);
+        featBeta = cell(parBlocks*numPar,1);
+        featGamma = cell(parBlocks*numPar,1);
+        featTheta = cell(parBlocks*numPar,1);
+        featDelta = cell(parBlocks*numPar,1);
+
         numNanTot = cell(parBlocks*numPar,1);
         
         parfor p = 1:numPar
@@ -142,6 +159,13 @@ if parFlag    %if flag is set do processing in parallel
                 %Initilize variable to be used specifically in each proc.
                 reverseStr = '';
                 parfeat = cell(parBlocks,1);
+                
+                paralpha = cell(numPar,1);
+                parbeta = cell(numPar,1);
+                pargamma = cell(numPar,1);
+                partheta = cell(numPar,1);
+                pardelta = cell(numPar,1);
+                
                 parnumNan = cell(parBlocks,1);
                 
                 session = IEEGSession(datasetFN,username,pswd);
@@ -177,7 +201,15 @@ if parFlag    %if flag is set do processing in parallel
                     %calculate feature every winLen secs
                     numWins = ceil(size(blockData,1)/(winLen*fs));
                     tmpFeat = zeros(numWins,nChan);
+                    
+                    tmpAlpha = zeros(numWins,nChan);
+                    tmpBeta = zeros(numWins,nChan);
+                    tmpGamma = zeros(numWins,nChan);
+                    tmpTheta = zeros(numWins,nChan);
+                    tmpDelta = zeros(numWins,nChan);
+                    
                     tmpNan  = ones(numWins,nChan)*(winLen*fs);
+                    
                 else       %do normal feature extraction
                     blockNan = blockData; %copy block data with Nans 
                     blockData(isnan(blockData)) = 0; %NaN's turned to zero
@@ -185,6 +217,13 @@ if parFlag    %if flag is set do processing in parallel
                     %calculate feature every winLen secs
                     numWins = ceil(size(blockData,1)/(winLen*fs));
                     tmpFeat = zeros(numWins,nChan);
+                    
+                    tmpAlpha = zeros(numWins,nChan);
+                    tmpBeta = zeros(numWins,nChan);
+                    tmpGamma = zeros(numWins,nChan);
+                    tmpTheta = zeros(numWins,nChan);
+                    tmpDelta = zeros(numWins,nChan);
+                    
                     tmpNan  = zeros(numWins,nChan);
                     for n = 1:numWins
                         %off set included
@@ -193,74 +232,71 @@ if parFlag    %if flag is set do processing in parallel
                         %Since all Nan set to 0 look for 0's instead of NaN
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
                         totSamp = winLen*fs;
-
-                        switch band
-                            case 'alpha'
-                                for c = 1:nChan
-                                    y = blockData(startWinPt:endWinPt,c);
-                                    [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                    
-                                    %scale
-                                    if((1 - tmpNan(n,c)/totSamp) ~= 0)
-                                    tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd')/(1 - tmpNan(n,c)/totSamp);
-                                    else
-                                    tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd');
-                                    end                                     
-                                end
-                            case 'beta'
-                                for c = 1:nChan
-                                    y = blockData(startWinPt:endWinPt,c);
-                                    [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                    %scale
-                                    if((1 - tmpNan(n,c)/totSamp) ~= 0)
-                                    tmpFeat(n,c) = bandpower(PSD,F,beta,'psd')/(1 - tmpNan(n,c)/totSamp);
-                                    else
-                                    tmpFeat(n,c) = bandpower(PSD,F,beta,'psd');
-                                    end   
-                                end
-                            case 'gamma'
-                                for c = 1:nChan
-                                    y = blockData(startWinPt:endWinPt,c);
-                                    [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                    %scale
-                                    if((1 - tmpNan(n,c)/totSamp) ~= 0)
-                                    tmpFeat(n,c) = bandpower(PSD,F,gamma,'psd')/(1 - tmpNan(n,c)/totSamp);
-                                    else
-                                    tmpFeat(n,c) = bandpower(PSD,F,gamma,'psd');
-                                    end 
-                                end
-                            case 'theta'
-                                for c = 1:nChan
-                                    y = blockData(startWinPt:endWinPt,c);
-                                    [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                    %scale
-                                    if((1 - tmpNan(n,c)/totSamp) ~= 0)
-                                    tmpFeat(n,c) = bandpower(PSD,F,theta,'psd')/(1 - tmpNan(n,c)/totSamp);
-                                    else
-                                    tmpFeat(n,c) = bandpower(PSD,F,theta,'psd');
-                                    end 
-                                end
-                            case 'delta'
-                                for c = 1:nChan
-                                    y = blockData(startWinPt:endWinPt,c);
-                                    [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                    %scale
-                                    if((1 - tmpNan(n,c)/totSamp) ~= 0)
-                                    tmpFeat(n,c) = bandpower(PSD,F,delta,'psd')/(1 - tmpNan(n,c)/totSamp);
-                                    else
-                                    tmpFeat(n,c) = bandpower(PSD,F,delta,'psd');
-                                    end 
-                                end                                        
+                        
+                        for c = 1:nChan
+                        y = blockData(startWinPt:endWinPt,c);            
+                        [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                            
+%                                 if(band(1) == '1')
+                                        %scale
+                                        if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                        tmpAlpha(n,c) = bandpower(PSD,F,alphaB,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                        else
+                                        tmpAlpha(n,c) = bandpower(PSD,F,alphaB,'psd');
+                                        end                                     
+%                                 elseif(band(2) == '1')
+                                        %scale
+                                        if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                        tmpBeta(n,c) = bandpower(PSD,F,betaB,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                        else
+                                        tmpBeta(n,c) = bandpower(PSD,F,betaB,'psd');
+                                        end   
+%                                 elseif(band(3) == '1')
+                                        %scale
+                                        if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                        tmpGamma(n,c) = bandpower(PSD,F,gammaB,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                        else
+                                        tmpGamma(n,c) = bandpower(PSD,F,gammaB,'psd');
+                                        end 
+%                                 elseif(band(4) == '1')
+                                        %scale
+                                        if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                        tmpTheta(n,c) = bandpower(PSD,F,thetaB,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                        else
+                                        tmpTheta(n,c) = bandpower(PSD,F,thetaB,'psd');
+                                        end 
+%                                 elseif(band(5) == '1')
+                                        %scale
+                                        if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                        tmpDelta(n,c) = bandpower(PSD,F,deltaB,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                        else
+                                        tmpDelta(n,c) = bandpower(PSD,F,deltaB,'psd');
+                                        end 
+%                                 end
                         end
                     end
 
                 end
 
                 parfeat{j} = tmpFeat;
+                
+                paralpha{j} = tmpAlpha;
+                parbeta{j}  = tmpBeta;
+                pargamma{j} = tmpGamma;
+                partheta{j} = tmpTheta;
+                pardelta{j} = tmpDelta;
+                  
                 parnumNan{j} = tmpNan;
             end
             
         parFeat{p} = parfeat; %Store the result from isolated process in 
+        
+        parAlpha{p} = paralpha;
+        parBeta{p}  = parbeta;
+        parGamma{p} = pargamma;
+        parTheta{p} = partheta;
+        parDelta{p} = pardelta;
+        
         parNan{p} = parnumNan; %its appropriate location in cell
         end
     %put all cells back together in matrix
@@ -275,17 +311,38 @@ if parFlag    %if flag is set do processing in parallel
 %        feat = [feat; tmpF];
 %        numNan = [numNan; tmpN];
        featTot(parBlocks*(tm-1)+1 : parBlocks*tm) = parFeat{tm};
+       
+       featAlpha(parBlocks*(tm-1)+1 : parBlocks*tm) = parAlpha{tm};
+       featBeta(parBlocks*(tm-1)+1 : parBlocks*tm)  = parBeta{tm};
+       featGamma(parBlocks*(tm-1)+1 : parBlocks*tm) = parGamma{tm};
+       featTheta(parBlocks*(tm-1)+1 : parBlocks*tm) = parTheta{tm};
+       featDelta(parBlocks*(tm-1)+1 : parBlocks*tm) = parDelta{tm};
+       
        numNanTot(parBlocks*(tm-1)+1 : parBlocks*tm) = parNan{tm}; 
        
     end
     
     fprintf('\n');
     feat = cell2mat(featTot);
+    
+    alpha = cell2mat(featAlpha);
+    beta  = cell2mat(featBeta);
+    gamma = cell2mat(featGamma);
+    theta = cell2mat(featTheta);
+    delta = cell2mat(featDelta);
+    
     numNan = cell2mat(numNanTot);
-    if strcmp(band,'dcn')
-        feat = feat(:,1);
-    end
+
     save([datasetFN '_' outLabel '.mat'],'feat','-v7.3');
+    
+    save([datasetFN '_alpha_' outLabel '.mat'],'alpha','-v7.3');
+    save([datasetFN '_beta_' outLabel '.mat'],'beta','-v7.3');
+    save([datasetFN '_gamma_' outLabel '.mat'],'gamma','-v7.3');
+    save([datasetFN '_theta_' outLabel '.mat'],'theta','-v7.3');
+    save([datasetFN '_delta_' outLabel '.mat'],'delta','-v7.3');
+    
+    
+    
     end
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
@@ -317,6 +374,13 @@ else          %do normal processing if flag is not set
         
         %% Feature extraction loop
         feat = cell(numBlocks,1);
+        
+        alpha = cell(numBlocks,1);
+        beta = cell(numBlocks,1);
+        gamma = cell(numBlocks,1);
+        theta = cell(numBlocks,1);
+        delta = cell(numBlocks,1);
+        
         numNan = cell(numBlocks,1);
         reverseStr = '';
         for j = 1:numBlocks
@@ -336,6 +400,14 @@ else          %do normal processing if flag is not set
                 %calculate feature every winLen secs
                 numWins = ceil(size(blockData,1)/(winLen*fs));
                 tmpFeat = zeros(numWins,nChan);
+                
+                tmpAlpha = zeros(numWins,nChan);
+                tmpBeta = zeros(numWins,nChan);
+                tmpGamma = zeros(numWins,nChan);
+                tmpTheta = zeros(numWins,nChan);
+                tmpDelta = zeros(numWins,nChan);
+                
+                
                 tmpNan  = ones(numWins,nChan)*(winLen*fs);
             else       %do normal feature extraction
                 blockNan = blockData; %copy block data with Nans 
@@ -344,6 +416,13 @@ else          %do normal processing if flag is not set
                 %calculate feature every winLen secs
                 numWins = ceil(size(blockData,1)/(winLen*fs));
                 tmpFeat = zeros(numWins,nChan);
+                
+                tmpAlpha = zeros(numWins,nChan);
+                tmpBeta = zeros(numWins,nChan);
+                tmpGamma = zeros(numWins,nChan);
+                tmpTheta = zeros(numWins,nChan);
+                tmpDelta = zeros(numWins,nChan);
+                
                 tmpNan  = zeros(numWins,nChan);
                 for n = 1:numWins
                     %off set included
@@ -353,69 +432,59 @@ else          %do normal processing if flag is not set
                     tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
                     
                     totSamp = winLen*fs;
-                    switch band
-                        case 'alpha'
-                            for c = 1:nChan
-                                y = blockData(startWinPt:endWinPt,c);
-                                [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-
-                                %scale
-                                if((1 - tmpNan(n,c)/totSamp) ~= 0)
-                                tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd')/(1 - tmpNan(n,c)/totSamp);
-                                else
-                                tmpFeat(n,c) = bandpower(PSD,F,alpha,'psd');
-                                end                                     
-                            end
-                        case 'beta'
-                            for c = 1:nChan
-                                y = blockData(startWinPt:endWinPt,c);
-                                [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                %scale
-                                if((1 - tmpNan(n,c)/totSamp) ~= 0)
-                                tmpFeat(n,c) = bandpower(PSD,F,beta,'psd')/(1 - tmpNan(n,c)/totSamp);
-                                else
-                                tmpFeat(n,c) = bandpower(PSD,F,beta,'psd');
-                                end   
-                            end
-                        case 'gamma'
-                            for c = 1:nChan
-                                y = blockData(startWinPt:endWinPt,c);
-                                [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                %scale
-                                if((1 - tmpNan(n,c)/totSamp) ~= 0)
-                                tmpFeat(n,c) = bandpower(PSD,F,gamma,'psd')/(1 - tmpNan(n,c)/totSamp);
-                                else
-                                tmpFeat(n,c) = bandpower(PSD,F,gamma,'psd');
-                                end 
-                            end
-                        case 'theta'
-                            for c = 1:nChan
-                                y = blockData(startWinPt:endWinPt,c);
-                                [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                %scale
-                                if((1 - tmpNan(n,c)/totSamp) ~= 0)
-                                tmpFeat(n,c) = bandpower(PSD,F,theta,'psd')/(1 - tmpNan(n,c)/totSamp);
-                                else
-                                tmpFeat(n,c) = bandpower(PSD,F,theta,'psd');
-                                end 
-                            end
-                        case 'delta'
-                            for c = 1:nChan
-                                y = blockData(startWinPt:endWinPt,c);
-                                [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                %scale
-                                if((1 - tmpNan(n,c)/totSamp) ~= 0)
-                                tmpFeat(n,c) = bandpower(PSD,F,delta,'psd')/(1 - tmpNan(n,c)/totSamp);
-                                else
-                                tmpFeat(n,c) = bandpower(PSD,F,delta,'psd');
-                                end 
-                            end                                         
+                    for c = 1:nChan
+                        y = blockData(startWinPt:endWinPt,c);            
+                        [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
+                            
+%                                 if(band(1) == '1')
+                                        %scale
+                                        if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                        tmpAlpha(n,c) = bandpower(PSD,F,alphaB,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                        else
+                                        tmpAlpha(n,c) = bandpower(PSD,F,alphaB,'psd');
+                                        end                                     
+%                                 elseif(band(2) == '1')
+                                        %scale
+                                        if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                        tmpBeta(n,c) = bandpower(PSD,F,betaB,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                        else
+                                        tmpBeta(n,c) = bandpower(PSD,F,betaB,'psd');
+                                        end   
+%                                 elseif(band(3) == '1')
+                                        %scale
+                                        if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                        tmpGamma(n,c) = bandpower(PSD,F,gammaB,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                        else
+                                        tmpGamma(n,c) = bandpower(PSD,F,gammaB,'psd');
+                                        end 
+%                                 elseif(band(4) == '1')
+                                        %scale
+                                        if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                        tmpTheta(n,c) = bandpower(PSD,F,thetaB,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                        else
+                                        tmpTheta(n,c) = bandpower(PSD,F,thetaB,'psd');
+                                        end 
+%                                 elseif(band(5) == '1')
+                                        %scale
+                                        if((1 - tmpNan(n,c)/totSamp) ~= 0)
+                                        tmpDelta(n,c) = bandpower(PSD,F,deltaB,'psd')/(1 - tmpNan(n,c)/totSamp);
+                                        else
+                                        tmpDelta(n,c) = bandpower(PSD,F,deltaB,'psd');
+                                        end 
+%                                 end
                     end
                 end
                 
             end
             
             feat{j} = tmpFeat;
+            
+            alpha{j} = tmpAlpha;
+            beta{j}  = tmpBeta;
+            gamma{j} = tmpGamma;
+            theta{j} = tmpTheta;
+            delta{j} = tmpDelta;
+            
             numNan{j} = tmpNan;
             percentDone = 100 * j / numBlocks;
             msg = sprintf('Percent done: %3.1f',percentDone); %Don't forget this semicolon
@@ -424,11 +493,23 @@ else          %do normal processing if flag is not set
         end
     fprintf('\n');
     feat = cell2mat(feat);
+    
+    alpha = cell2mat(alpha);
+    beta  = cell2mat(beta);
+    gamma = cell2mat(gamma);
+    theta = cell2mat(theta);
+    delta = cell2mat(delta);
+    
     numNan = cell2mat(numNan);
-    if strcmp(band,'dcn')
-        feat = feat(:,1);
-    end
-    save([datasetFN '_' outLabel '.mat'],'feat','-v7.3');
+
+    %save([datasetFN '_' outLabel '.mat'],'feat','-v7.3');
+    
+    save([datasetFN '_alpha_' outLabel '.mat'],'alpha','-v7.3');
+    save([datasetFN '_beta_' outLabel '.mat'], 'beta','-v7.3');
+    save([datasetFN '_gamma_' outLabel '.mat'],'gamma','-v7.3');
+    save([datasetFN '_theta_' outLabel '.mat'],'theta','-v7.3');
+    save([datasetFN '_delta_' outLabel '.mat'],'delta','-v7.3');
+    
     end
 end
 

@@ -17,8 +17,9 @@ foo = 1:nrow(featData)
 #Downsample by M = 60
 i = 1
 idxToKeep = c(1,foo[1:(i+59)==(i+59)]) #take every 60th sample
-newData = featData[idxToKeep,]         
-#newData = featData
+
+#newData = featData[idxToKeep,]         
+newData = featData
 logData = featData[idxToKeep,]         
 fullData = featData
 
@@ -97,14 +98,16 @@ mod.null = lmer(AvgGamma ~ (1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
 anova(mod.null,mod) #LRT
 
 hist(residuals(mod),breaks=1000)
-boxplot(residuals(mod))
+boxplot(residuals(mod),ylim=c(-40,75))
 plot(residuals(mod),newData$AvgGamma)
 plot(fitted(mod),newData$AvgGamma)
+plot(fitted(mod),residuals(mod),ylim=c(-50,50))  #hertroskadisticity
 
-plot(newData$Time,residuals(mod)) #,ylim=c(-30, 30))
+plot(newData$Time,residuals(mod),ylim=c(-50, 50))
 plot(newData$Time,fitted(mod)) 
 
-#random slope and intercept
+
+#random slope and intercept 
 #mod = lmer(AvgLL ~ Time + (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
 #mod.null = lmer(AvgLL ~ (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
 
