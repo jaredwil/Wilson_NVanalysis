@@ -28,8 +28,10 @@ foo = 1:nrow(featData)
 t = (1:max(featData$Time))/60/60/24
 M = 2000
 permChi <- vector(mode = "integer",length = M)
+permP <- vector(mode = "integer",length = M)
+
 for (i in 1:M ) {
-  ptm <- proc.time()  #START CLOCK
+  # ptm <- proc.time()  #START CLOCK
   
   permData = featData
   
@@ -45,9 +47,10 @@ for (i in 1:M ) {
   
   mod = lmer(AvgGamma ~ Time + (1|PatientID),REML=FALSE,data=permData)
   mod.null = lmer(AvgGamma ~ (1|PatientID),REML=FALSE,data=permData)
-  permChi[i] = anova(mod.null,mod)$`Pr(>Chisq)`[2] #LRT
+  permP[i] = anova(mod.null,mod)$`Pr(>Chisq)`[2] #LRT
+  permChi[i]   = anova(mod.null,mod)$Chisq[2]
 
-  proc.time() - ptm   #STOP CLOCK
+  # proc.time() - ptm   #STOP CLOCK
   
 }
 
@@ -71,10 +74,14 @@ newData$Time = newData$Time/60/60/24  #normalize all times to be 0-1 instead of 
 mod = lmer(AvgGamma ~ Time + (1|PatientID),REML=FALSE,data=newData)
 mod.null = lmer(AvgGamma ~ (1|PatientID),REML=FALSE,data=newData)
 anova(mod.null,mod) #LRT
-chiVal = anova(mod.null,mod)$`Pr(>Chisq)`[2] #LRT
+pVal     = anova(mod.null,mod)$`Pr(>Chisq)`[2] #LRT
+chiVal   = anova(mod.null,mod)$Chisq[2]
 
 
-hist(permChi,breaks=1000)
+
+# r = anova(mod.null,mod)
+
+hist(permChi,breaks=500) 
 abline(v = chiVal)
 
 
