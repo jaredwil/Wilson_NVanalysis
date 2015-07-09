@@ -23,21 +23,31 @@ featData$Hospital = as.factor(featData$Hospital)
 featData$PatientID = as.factor(featData$PatientID)
 foo = 1:nrow(featData)
 
+# j = 1
+# idxToKeep = c(1,foo[1:(j+20)==(j+20)]) #take every 60th sample
 
-#Run through this 10000 times in order to create null distribution
+#Create Time vector
 t = (1:max(featData$Time))/60/60/24
+#resample time
+# foo2 = 1:length(t)
+# TidxToKeep = c(1,foo2[1:(j+20)==(j+20)]) #take every 60th sample
+# t = t[TidxToKeep]
+
+#Run through this M times in order to create null distribution
 M = 2000
 permChi <- vector(mode = "integer",length = M)
 permP <- vector(mode = "integer",length = M)
 
 for (i in 1:M ) {
-  # ptm <- proc.time()  #START CLOCK
+  ptm <- proc.time()  #START CLOCK
   
   permData = featData
+  #permData =featData[idxToKeep,] 
+  
+  timePerm = sample(t,length(t));
   
   #Reassigne time values for each pt.
   for (pt in 1:14){
-    timePerm = sample(t,length(t));
     permData$Time[((pt-1)*length(t)+1):(pt*length(t))] = timePerm;
   }
   
@@ -50,7 +60,7 @@ for (i in 1:M ) {
   permP[i] = anova(mod.null,mod)$`Pr(>Chisq)`[2] #LRT
   permChi[i]   = anova(mod.null,mod)$Chisq[2]
 
-  # proc.time() - ptm   #STOP CLOCK
+  proc.time() - ptm   #STOP CLOCK
   
 }
 
@@ -81,7 +91,7 @@ chiVal   = anova(mod.null,mod)$Chisq[2]
 
 # r = anova(mod.null,mod)
 
-hist(permChi,breaks=500) 
+hist(permChi,breaks=10,xlim=c(0,chiVal)) 
 abline(v = chiVal)
 
 

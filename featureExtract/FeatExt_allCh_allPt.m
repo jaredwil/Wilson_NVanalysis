@@ -24,7 +24,7 @@ numNan = cell(length(pt),1);
 ch = 1:16;
 
 %CHANGED TO FIND PROFILE
-%profile on;
+profile on;
 %for i = 1  %:length(pt)
 for i = 4
     disp(['Progress: ' num2str(i) '/14'])
@@ -34,13 +34,14 @@ for i = 4
 
     labelLL = 'LL_allCh_2Months_Scaled';
     labelEnergy = 'Energy_allCh_2Months_Scaled';
-
-     [ll{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'ll', min, labelLL,[0 3*day], hour,  1);
+    labelTimeTest = 'Test';
+    
+     [ll{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'ll', min, labelTimeTest,[0 2*day], hour,  0);
 %    [energy{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'energy', min, labelEnergy,[0 60*day], hour,  1);
 
 end
 
-%p = profile('info');
-%profile off;
-%profsave(p,'parProfile_results')
-%save('myparProf.mat','p')
+p = profile('info');
+profile off;
+profsave(p,'parProfile_results')
+save('myparProf.mat','p')

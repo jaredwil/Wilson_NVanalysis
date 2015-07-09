@@ -17,7 +17,7 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
     'NVC1001_24_005' 'NVC1001_23_002' 'NVC1001_23_003' 'NVC1001_23_004' ...
     'NVC1001_23_005' 'NVC1001_23_006' 'NVC1001_23_007'};
 
-labelLL = [pt{1} '_gammaBP_allCh_2Months.mat'];
+labelLL = [pt{1} '_Area_allCh_2Months.mat'];
 
 llTest = load(labelLL);
 llTest = llTest.feat;
@@ -40,7 +40,7 @@ for ptNum = 1:length(pt)
     
 %     labelLL = [pt{ptNum} '_LL_allCh_2Months_Scaled.mat'];
 %     labelEn = [pt{ptNum} '_Energy_allCh_2Months_Scaled.mat'];
-    labelGamma = [pt{ptNum} '_gammaBP_allCh_2Months.mat'];
+    labelGamma = [pt{ptNum} '_Area_allCh_2Months.mat'];
     
 %     ll = load(labelLL);
 %     ll = ll.feat;
@@ -78,7 +78,7 @@ for ptNum = 1:length(pt)
     featPt = [Loc' ID' time' gammaAvg gammaStd];
 
     
-    label = ['gammaBP_' pt{ptNum} '.csv']
+    label = ['Area_' pt{ptNum} '.csv']
     csvwrite(label,featPt)
     
 end
