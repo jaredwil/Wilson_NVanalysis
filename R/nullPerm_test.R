@@ -9,7 +9,7 @@ library(lme4)
 # of the residual variance
 #http://users.stat.umn.edu/~gary/classes/5303/handouts/REML.pdf
 
-setwd("C:/Users/Jared/Dropbox/NVanalysis_data/allCh_2months_OneminWinFeats/csv")
+setwd("C:/Users/Jared/Dropbox/NVanalysis_data/allCh_2months_OneminWinFeats/data_R")
 
 featData = read.table("LLEnergy_allPt.csv",header=FALSE, sep=",")
 gammaData = read.table("gammaBP_allPt.csv",header=FALSE, sep=",")
@@ -39,7 +39,7 @@ permChi <- vector(mode = "integer",length = M)
 permP <- vector(mode = "integer",length = M)
 
 for (i in 1:M ) {
-  ptm <- proc.time()  #START CLOCK
+  #ptm <- proc.time()  #START CLOCK
   
   permData = featData
   #permData =featData[idxToKeep,] 
@@ -55,12 +55,17 @@ for (i in 1:M ) {
   permData= permData[permData$AvgEnergy!=0,]   #remove indices where avgEnergy is zero
   permData= permData[permData$AvgGamma!=0,]   #remove indices where avgEnergy is zero
   
-  mod = lmer(AvgGamma ~ Time + (1|PatientID),REML=FALSE,data=permData)
-  mod.null = lmer(AvgGamma ~ (1|PatientID),REML=FALSE,data=permData)
+  ### GAMMA POWER
+#   mod = lmer(AvgGamma ~ Time + (1|PatientID),REML=FALSE,data=permData)
+#   mod.null = lmer(AvgGamma ~ (1|PatientID),REML=FALSE,data=permData)
+  ### LINE LENGTH
+  mod = lmer(AvgLL ~ Time + (1|PatientID),REML=FALSE,data=permData)
+  mod.null = lmer(AvgLL ~ (1|PatientID),REML=FALSE,data=permData)
+  
   permP[i] = anova(mod.null,mod)$`Pr(>Chisq)`[2] #LRT
   permChi[i]   = anova(mod.null,mod)$Chisq[2]
 
-  proc.time() - ptm   #STOP CLOCK
+  #proc.time() - ptm   #STOP CLOCK
   
 }
 
@@ -88,19 +93,28 @@ pVal     = anova(mod.null,mod)$`Pr(>Chisq)`[2] #LRT
 chiVal   = anova(mod.null,mod)$Chisq[2]
 
 
+####Line Length TEST
+mod = lmer(AvgLL ~ Time + (1|PatientID),REML=FALSE,data=newData)
+mod.null = lmer(AvgLL ~ (1|PatientID),REML=FALSE,data=newData)
+
+anova(mod.null,mod) #LRT
+pVal     = anova(mod.null,mod)$`Pr(>Chisq)`[2] #LRT
+chiVal   = anova(mod.null,mod)$Chisq[2]
+
+
 
 # r = anova(mod.null,mod)
 
-hist(permChi,breaks=10,xlim=c(0,chiVal)) 
+hist(permChi,breaks=100)#,xlim=c(0,chiVal)) 
 abline(v = chiVal)
 
 
-# hist(residuals(mod),breaks=1000)
-# boxplot(residuals(mod),ylim=c(-40,75))
-# plot(residuals(mod),newData$AvgGamma)
-# plot(fitted(mod),newData$AvgGamma)
-# plot(fitted(mod),residuals(mod),ylim=c(-50,50))  #hertroskadisticity
-# 
-# plot(newData$Time,residuals(mod),ylim=c(-50, 50))
-# plot(newData$Time,fitted(mod)) 
+hist(residuals(mod),breaks=1000)
+boxplot(residuals(mod),ylim=c(-40,75))
+plot(residuals(mod),newData$AvgGamma)
+plot(fitted(mod),newData$AvgGamma)
+plot(fitted(mod),residuals(mod),ylim=c(-50,50))  #hertroskadisticity
+
+plot(newData$Time,residuals(mod),ylim=c(-50, 50))
+plot(newData$Time,fitted(mod)) 
 

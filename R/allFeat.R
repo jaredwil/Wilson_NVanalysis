@@ -1,6 +1,6 @@
 rm(list = ls())  #clear workspace
 
-setwd("C:/Users/Jared/Dropbox/NVanalysis_data/allCh_2months_OneminWinFeats/csv")
+setwd("C:/Users/Jared/Dropbox/NVanalysis_data/allCh_2months_OneminWinFeats/data_R")
 
 featData = read.table("LLEnergy_allPt.csv",header=FALSE, sep=",")
 gammaData = read.table("gammaBP_allPt.csv",header=FALSE, sep=",")
@@ -107,18 +107,21 @@ plot(newData$Time,residuals(mod),ylim=c(-50, 50))
 plot(newData$Time,fitted(mod)) 
 
 
-#random slope and intercept 
-#mod = lmer(AvgLL ~ Time + (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
-#mod.null = lmer(AvgLL ~ (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
+# #random slope and intercept 
+# #resulting anova p = 0.172
+# mod = lmer(AvgLL ~ Time + (1|PatientID) + (Time-1|PatientID),REML=FALSE,data=newData)
+# mod.null = lmer(AvgLL ~ (1|PatientID) + (Time-1|PatientID),REML=FALSE,data=newData)
+# #resulting anova p = 0.1732  very similar to above (I think the syntax is saying the same thing)
+# mod = lmer(AvgLL ~ Time + (1+Time|PatientID),REML=FALSE,data=newData)
+# mod.null = lmer(AvgLL ~ (1+Time|PatientID),REML=FALSE,data=newData)
 
-mod = lmer(AvgLL ~ Time + (1|PatientID) + (1+Time|PatientID) + (1|Hospital),REML=FALSE,data=newData)
-mod.null = lmer(AvgLL ~ (1|PatientID) + (1+Time|PatientID) + (1|Hospital),REML=FALSE,data=newData)
-
+mod = lmer(AvgLL ~ Time + (1|PatientID),REML=FALSE,data=newData)
+mod.null = lmer(AvgLL ~ (1|PatientID),REML=FALSE,data=newData)
 anova(mod.null,mod) #LRT 
 
 #Gamma
-mod = lmer(AvgGamma ~ Time + (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
-mod.null = lmer(AvgGamma ~ (1|PatientID) + (Time-1|PatientID) + (1|Hospital),REML=FALSE,data=newData)
+mod = lmer(AvgGamma ~ Time + (1|PatientID) + (Time-1|PatientID),REML=FALSE,data=newData)
+mod.null = lmer(AvgGamma ~ (1|PatientID) + (Time-1|PatientID),REML=FALSE,data=newData)
 
 anova(mod.null,mod) #LRT 
 
