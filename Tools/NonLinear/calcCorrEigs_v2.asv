@@ -1,8 +1,9 @@
-function [feat, numNan] = calcFeature_NVv2(datasets,channels,feature,winLen,dispPercent,outLabel,runIndex,blockLenSecs,parFlag,varargin)
+function [eigVals, numNan] = calcCorrEigs_v2(datasets,channels,winLen,dispPercent,outLabel,runIndex,blockLenSecs,parFlag,varargin)
 %[feat, numNan] = calcFeature_wil(datasets,channels,feature,winLen,outLabel,runIndex,blockLenSecs,parFlag,varargin)
-%       This function is used for feature extraction over long data sets
-%       able to select parflag to run processes in paralell.
-%
+%       This function is used to analyze how the eigenvalues of the channel
+%       correlation matrix changes over long data sets; able to select
+%       parflag to run processes in paralell.
+%       INCLUDED ABILITY TO ALLOW OVERLAP OF WINDOWS
 % Author: Jared Wilson 
 % 4/8/15 v1 working
 %
@@ -10,9 +11,8 @@ function [feat, numNan] = calcFeature_NVv2(datasets,channels,feature,winLen,disp
 % Hoameng Ung
 %Usage: calcFeature(datasets,channels,feature,winLen,outLabel,filtFlag,varargin)
 %This function will divide IEEGDataset channels into blocks of
-%and within these blocks further divide into winLen. Features
+%and within these blocks further divide into winLen. Correlation EigenVals
 %will be calculated for each winLen and saved in a .mat matrix.
-%Features calculated: power, LL, DCN
 
 % Parallel Processing Usage: if parFlag set multiple sessions are
 % established to pull data blocks simultaneosuly
@@ -24,6 +24,8 @@ function [feat, numNan] = calcFeature_NVv2(datasets,channels,feature,winLen,disp
 %   'channels'      :   vector of channels
 %   'winLen'        :   winLen = vector of windowlengths (s) to calculate
 %                       features over
+%   'dispPercent'   :   The percent of the total window length that each
+%                   window is moved by. must be (0-1)
 %   'outlabel'      :   Suffix to save features to
 %   (datasetname_outlabel.mat)
 %   'runIndex'      :   Set the length of analysis [beginSec endSec] in
@@ -34,7 +36,7 @@ function [feat, numNan] = calcFeature_NVv2(datasets,channels,feature,winLen,disp
 %   to increase speed
 
 %Output:
-%   'feat'          :   Calculated feature for each window
+%   'eigVals'       :   Calculated Correlation Eigen values for each window
 %   'numNan'        :   The number of NaN that is contained in each window
 %   in each channel same size as feat
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -64,16 +66,8 @@ function [feat, numNan] = calcFeature_NVv2(datasets,channels,feature,winLen,disp
 
 %% Anonymous functions
 CalcNumWins = @(xLen, fs, winLen, winDisp)floor((xLen-(winLen-winDisp)*fs)/(winDisp*fs));
-DCNCalc = @(data) (1+(cond(data)-1)/size(data,2)); % DCN feature
-AreaFn = @(x) mean(abs(x),1);
-EnergyFn = @(x) mean(x.^2,1);
-ZCFn = @(x) sum((x(1:end-1,:)>repmat(mean(x),size(x,1)-1,1)) & x(2:end,:)<repmat(mean(x),size(x,1)-1,1) | (x(1:end-1,:)<repmat(mean(x),size(x,1)-1,1) & x(2:end,:)>repmat(mean(x),size(x,1)-1,1)));
-LLFn = @(x) mean(abs(diff(x)));
-LLFn2 = @(X, winLen) conv2(abs(diff(X,1)),  repmat(1/winLen,winLen,1),'same');
-
 
 %% Initialization
-feature = lower(feature);
 %blockLenSecs = 3600; %get data in blocks (use as defult)
 
 %% Parallel Processing
@@ -161,20 +155,20 @@ if parFlag    %if flag is set do processing in parallel
                 if(sum(isnan(blockData),1) == blockLenSecs*fs) % all 0's
                     nChan = numel(channels);
                     %calculate feature every winLen secs
-                    winDisp = dispPercent*winLen;
-                    numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
-                    
-                    tmpFeat = zeros(numWins,nChan);
+                    numWins = ceil(size(blockData,1)/(winLen*fs));
+                    tmpEig = zeros(numWins,nChan);
                     tmpNan  = ones(numWins,nChan)*(winLen*fs);
                 else       %do normal feature extraction
                     blockNan = blockData; %copy block data with Nans 
                     blockData(isnan(blockData)) = 0; %NaN's turned to zero
                     nChan = numel(channels);
                     %calculate feature every winLen secs
+                    
                     winDisp = dispPercent*winLen;
                     numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
                     
-                    tmpFeat = zeros(numWins,nChan);
+%                     numWins = ceil(size(blockData,1)/(winLen*fs));
+                    tmpEig = zeros(numWins,nChan);
                     tmpNan  = zeros(numWins,nChan);
                     for n = 1:numWins
                         %off set included
@@ -183,39 +177,25 @@ if parFlag    %if flag is set do processing in parallel
                         %Find number of Nan
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
 
-                        idxN = find(isnan(blockNan(startWinPt:endWinPt,1)) == 1);  %find all indices without Nan
+                        
+                        %only compute correlation for windows with zero nan
+                        if tmpNan(n,1) == 0
+                            y = blockData(startWinPt:endWinPt,1:nChan);
+                            
+                            %normalize windows zero mean/unit std dev
+                            y = bsxfun(@rdivide, bsxfun(@minus,y,mean(y,1)) ,std(y));
 
-                        
-                        %check to see if there are any outages if there are
-                        %not then proceed normally else do computation to
-                        %componsate for Nans
-                            switch feature
-                                case 'power'
-                                    for c = 1:nChan
-                                        y = blockData(startWinPt:endWinPt,c);
-                                        [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                        tmpFeat(n,c) = bandpower(PSD,F,varargin{1},'psd');
-                                    end
-                                case 'dcn'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    y(idxN,:) = [];  %remove indices that are 0;
-                                    tmpFeat(n,1) = DCNCalc(y);
-                                case 'll'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    y(idxN,:) = [];  %remove indices that are 0;
-                                    tmpFeat(n,:) = LLFn(y);
-                                case 'energy'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    y(idxN,:) = [];  %remove indices that are 0;
-                                    tmpFeat(n,:) = EnergyFn(y);
-                            end
-                        
-                       
+                            R = corrcoef(y);
+                            tmpEig(n,:) = sort(eig(R)','descend');
+
+                        else
+                            tmpEig(n,:) = zeros(1,nChan);
+                        end
                     end
 
                 end
 
-                parfeat{j} = tmpFeat;
+                parfeat{j} = tmpEig;
                 parnumNan{j} = tmpNan;
                 %This doesn't really work for par processes
 %                 percentDone = 100 * j / numBlocks;
@@ -228,7 +208,7 @@ if parFlag    %if flag is set do processing in parallel
         parNan{p} = parnumNan; %its appropriate location in cell
         end
     %put all cells back together in matrix
-      feat = [];
+      eigVals = [];
       numNan = [];
 %     feat = cell(numBlocks,1);
 %     numNan = cell(numBlocks,1);
@@ -244,12 +224,9 @@ if parFlag    %if flag is set do processing in parallel
     end
     
     fprintf('\n');
-    feat = cell2mat(featTot);
+    eigVals = cell2mat(featTot);
     numNan = cell2mat(numNanTot);
-    if strcmp(feature,'dcn')
-        feat = feat(:,1);
-    end
-    save([datasetFN '_' outLabel '.mat'],'feat','-v7.3');
+    save([datasetFN '_' outLabel '.mat'],'eigVals','-v7.3');
     end
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
@@ -280,7 +257,7 @@ else          %do normal processing if flag is not set
         end
         
         %% Feature extraction loop
-        feat = cell(numBlocks,1);
+        eigVals = cell(numBlocks,1);
         numNan = cell(numBlocks,1);
         reverseStr = '';
         for j = 1:numBlocks
@@ -298,18 +275,20 @@ else          %do normal processing if flag is not set
             if(sum(isnan(blockData),1) == blockLenSecs*fs) % all 0's
                 nChan = numel(channels);
                 %calculate feature every winLen secs
-                winDisp = dispPercent*winLen;
-                numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
-                tmpFeat = zeros(numWins,nChan);
+                numWins = ceil(size(blockData,1)/(winLen*fs));
+                tmpEig = zeros(numWins,nChan);
                 tmpNan  = ones(numWins,nChan)*(winLen*fs);
             else       %do normal feature extraction
                 blockNan = blockData; %copy block data with Nans 
                 blockData(isnan(blockData)) = 0; %NaN's turned to zero
                 nChan = numel(channels);
+                
                 %calculate feature every winLen secs
                 winDisp = dispPercent*winLen;
                 numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
-                tmpFeat = zeros(numWins,nChan);
+%                 numWins = ceil(size(blockData,1)/(winLen*fs));
+
+                tmpEig = zeros(numWins,nChan);
                 tmpNan  = zeros(numWins,nChan);
                 for n = 1:numWins
                         %off set included
@@ -318,35 +297,26 @@ else          %do normal processing if flag is not set
                         %Since all Nan set to 0 look for 0's instead of NaN
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
                         
-                        idxN = find(isnan(blockNan(startWinPt:endWinPt,1)) == 1);  %find all indices without Nan
-                        %check to see if there are any outages if there are
-                        %not then proceed normally else do computation to
-                        %componsate for Nans
-                            switch feature
-                                case 'power'
-                                    for c = 1:nChan
-                                        y = blockData(startWinPt:endWinPt,c);
-                                        [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                        tmpFeat(n,c) = bandpower(PSD,F,varargin{1},'psd');
-                                    end
-                                case 'dcn'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    y(idxN,:) = [];  %remove indices that are 0;
-                                    tmpFeat(n,1) = DCNCalc(y);
-                                case 'll'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    y(idxN,:) = [];  %remove indices that are 0;
-                                    tmpFeat(n,:) = LLFn(y);
-                                case 'energy'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    y(idxN,:) = [];  %remove indices that are 0;
-                                    tmpFeat(n,:) = EnergyFn(y);
-                            end
+                        
+                       %only compute correlation for windows with zero nan
+                        if tmpNan(n,1) == 0
+                            y = blockData(startWinPt:endWinPt,1:nChan);
+                            
+                            %normalize windows zero mean/unit std dev
+                            y = bsxfun(@rdivide, bsxfun(@minus,y,mean(y,1)) ,std(y));
+                            
+                            R = corrcoef(y);
+                            
+                            tmpEig(n,:) = sort(eig(R)','descend');
+
+                        else
+                            tmpEig(n,:) = zeros(1,nChan);
+                        end
                 end
                 
             end
             
-            feat{j} = tmpFeat;
+            eigVals{j} = tmpEig;
             numNan{j} = tmpNan;
             percentDone = 100 * j / numBlocks;
             msg = sprintf('Percent done: %3.1f',percentDone); %Don't forget this semicolon
@@ -354,12 +324,9 @@ else          %do normal processing if flag is not set
             reverseStr = repmat(sprintf('\b'), 1, length(msg));
         end
     fprintf('\n');
-    feat = cell2mat(feat);
+    eigVals = cell2mat(eigVals);
     numNan = cell2mat(numNan);
-    if strcmp(feature,'dcn')
-        feat = feat(:,1);
-    end
-    save([datasetFN '_' outLabel '.mat'],'feat','-v7.3');
+    save([datasetFN '_' outLabel '.mat'],'eigVals','-v7.3');
     end
 end
 

@@ -56,8 +56,8 @@ for (i in 1:M ) {
   permData= permData[permData$AvgGamma!=0,]   #remove indices where avgEnergy is zero
   
   ### GAMMA POWER
-#   mod = lmer(AvgGamma ~ Time + (1|PatientID),REML=FALSE,data=permData)
-#   mod.null = lmer(AvgGamma ~ (1|PatientID),REML=FALSE,data=permData)
+  #mod = lmer(AvgGamma ~ Time + (1|PatientID),REML=FALSE,data=permData)
+  #mod.null = lmer(AvgGamma ~ (1|PatientID),REML=FALSE,data=permData)
   ### LINE LENGTH
   mod = lmer(AvgLL ~ Time + (1|PatientID),REML=FALSE,data=permData)
   mod.null = lmer(AvgLL ~ (1|PatientID),REML=FALSE,data=permData)

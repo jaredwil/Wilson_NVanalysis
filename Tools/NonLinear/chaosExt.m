@@ -1,12 +1,10 @@
-function [feat, numNan] = calcFeature_NV(datasets,channels,feature,winLen,dispPercent,outLabel,runIndex,blockLenSecs,parFlag,varargin)
-%[feat, numNan] = calcFeature_wil(datasets,channels,feature,winLen,outLabel,runIndex,blockLenSecs,parFlag,varargin)
-%       This function is used for feature extraction over long data sets
-%       able to select parflag to run processes in paralell.
-%
-%          -This  function scales the data appropriately based on the
-%          number of Nans contained in a window  
-%          -This function Includes ability for window overlap
-%
+function [feat, numNan] = chaosExt(datasets,channels,feature,winLen,dispPercent,outLabel,runIndex,blockLenSecs,parFlag,varargin)
+%[feat, numNan] = chaosExt(datasets,channels,winLen,dispPercent,outLabel,runIndex,blockLenSecs,parFlag,varargin)
+%       This function is used to extract windowed features that describe
+%       the chaotic nature of the signal correlation matrix changes over
+%       long data sets; able to select parflag to run processes in
+%       paralell. 
+%       INCLUDES ABILITY TO ALLOW OVERLAP OF WINDOWS!
 % Author: Jared Wilson 
 % 4/8/15 v1 working
 %
@@ -14,20 +12,26 @@ function [feat, numNan] = calcFeature_NV(datasets,channels,feature,winLen,dispPe
 % Hoameng Ung
 %Usage: calcFeature(datasets,channels,feature,winLen,outLabel,filtFlag,varargin)
 %This function will divide IEEGDataset channels into blocks of
-%and within these blocks further divide into winLen. Features
+%and within these blocks further divide into winLen. Correlation EigenVals
 %will be calculated for each winLen and saved in a .mat matrix.
-%Features calculated: power, LL, DCN
-
+%
 % Parallel Processing Usage: if parFlag set multiple sessions are
 % established to pull data blocks simultaneosuly
 %
-%
-
 %Input:
 %   'dataset'       :   IEEG dataset 
 %   'channels'      :   vector of channels
+%   'features'      :   string input that designates the feature to be
+%                       extracted 
+%                   Options:  -'hfd'    :Higuchi's fractal dimensions
+%                             -'kfd'    :Katz fractal dimension
+%                             -'hurst'  :Hurst Exponent (stocastic info.)
+%                             -'specEn' :Spectral Entropy
+%
 %   'winLen'        :   winLen = vector of windowlengths (s) to calculate
 %                       features over
+%   'dispPercent'   :   The percent of the total window length that each
+%                   window is moved by. must be (0-1)
 %   'outlabel'      :   Suffix to save features to
 %   (datasetname_outlabel.mat)
 %   'runIndex'      :   Set the length of analysis [beginSec endSec] in
@@ -38,7 +42,7 @@ function [feat, numNan] = calcFeature_NV(datasets,channels,feature,winLen,dispPe
 %   to increase speed
 
 %Output:
-%   'feat'          :   Calculated feature for each window
+%   'eigVals'       :   Calculated Correlation Eigen values for each window
 %   'numNan'        :   The number of NaN that is contained in each window
 %   in each channel same size as feat
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -68,19 +72,8 @@ function [feat, numNan] = calcFeature_NV(datasets,channels,feature,winLen,dispPe
 
 %% Anonymous functions
 CalcNumWins = @(xLen, fs, winLen, winDisp)floor((xLen-(winLen-winDisp)*fs)/(winDisp*fs));
-DCNCalc = @(data) (1+(cond(data)-1)/size(data,2)); % DCN feature
-AmpFn = @(x) mean(abs(x),1);
-AreaFn = @(x) sum(abs(x),1);
-EnergyFn = @(x) mean(x.^2,1);
-ZCFn = @(x) sum((x(1:end-1,:)>repmat(mean(x),size(x,1)-1,1)) & x(2:end,:)<repmat(mean(x),size(x,1)-1,1) | (x(1:end-1,:)<repmat(mean(x),size(x,1)-1,1) & x(2:end,:)>repmat(mean(x),size(x,1)-1,1)));
-LLFn = @(x) mean(abs(diff(x)));
-LLFn2 = @(X, winLen) conv2(abs(diff(X,1)),  repmat(1/winLen,winLen,1),'same');
-
-%mean windowed nonlinear energy -- teager energy. 
-EnergyNl = @(x) mean(bsxfun(@minus,x(2:end-1,:).^2, x(1:end-2,:).*x(3:end,:)),1);
 
 %% Initialization
-feature = lower(feature);
 %blockLenSecs = 3600; %get data in blocks (use as defult)
 
 %% Parallel Processing
@@ -177,8 +170,11 @@ if parFlag    %if flag is set do processing in parallel
                     blockData(isnan(blockData)) = 0; %NaN's turned to zero
                     nChan = numel(channels);
                     %calculate feature every winLen secs
+                    
                     winDisp = dispPercent*winLen;
                     numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
+                    
+%                     numWins = ceil(size(blockData,1)/(winLen*fs));
                     tmpFeat = zeros(numWins,nChan);
                     tmpNan  = zeros(numWins,nChan);
                     for n = 1:numWins
@@ -188,107 +184,27 @@ if parFlag    %if flag is set do processing in parallel
                         %Find number of Nan
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
 
-                        idxN = find(isnan(blockNan(startWinPt:endWinPt,1)) == 0);  %find all indices without Nan
-                        x = [0; cumsum(diff(idxN)~=1)];                 %find consecutive non Nan values
-
                         
-                        %check to see if there are any outages if there are
-                        %not then proceed normally else do computation to
-                        %componsate for Nans
-                        if max(x) == 0
+                        %only compute features for windows with no nan
+                        %values
+                        if tmpNan(n,1) == 0
                             switch feature
-                                case 'power'
-                                    for c = 1:nChan
-                                        y = blockData(startWinPt:endWinPt,c);
-                                        [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                        tmpFeat(n,c) = bandpower(PSD,F,varargin{1},'psd');
-                                    end
-                                case 'dcn'
+                                case 'hfd'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,1) = DCNCalc(y);
-                                case 'll'
+                                    tmpFeat(n,:) = Higuchi_FD(y,2);
+                                case 'kfd'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = LLFn(y);
-                                case 'amp'
+                                    tmpFeat(n,:) = Katz_FD(y);
+                                case 'hurst'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = AmpFn(y);
-                                case 'area'
+                                    tmpFeat(n,:) = hurstExp(y);
+                                case 'specEn'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = AreaFn(y);
-                                case 'energy'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = EnergyFn(y);
-                            end
+                                    tmpFeat(n,:) = spectral_Entropy(y);
+                             end
+                            
                         else
-                            %number of consecutive outs
-                       	    numOut = max(x)+1;                                  
-                            idxStart = ones(numOut,1);    %start ind                
-                            idxEnd = ones(numOut,1);      %end ind
-                            idxEnd(end) = length(x);      %last end point is end
-
-                            %find all start and end index of outage
-                            idxEnd(1:end-1) = find(diff(x) > 0);
-                            idxStart(2:end) = find(diff(x) > 0) + 1;
-
-                            %Start/end/and length of outage
-                            startT = idxN(idxStart);   %values are not really time
-                            endT = idxN(idxEnd);
-                            outLen = (endT - startT);
-                            switch feature
-                                case 'power'
-                                    for c = 1:nChan
-                                        y = blockData(startWinPt:endWinPt,c);
-                                        [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                        tmpFeat(n,c) = bandpower(PSD,F,varargin{1},'psd');
-                                    end
-                                case 'dcn'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,1) = DCNCalc(y);
-                                case 'll'
-                                    k = 1;
-                                    winFeat = [];
-                                    for goodWin = 1:numOut
-                                        if outLen(goodWin) > 5
-                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
-                                        winFeat(k,:) = LLFn(tmp);
-                                        k = k + 1;
-                                        end
-                                    end
-                                    tmpFeat(n,:) = mean(winFeat,1);
-                                case 'amp'
-                                    k = 1;
-                                    winFeat = [];
-                                    for goodWin = 1:numOut
-                                        if outLen(goodWin) > 5
-                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
-                                        winFeat(k,:) = AmpFn(tmp);
-                                        k = k + 1;
-                                        end
-                                    end
-                                    tmpFeat(n,:) = mean(winFeat,1);
-                                case 'area'
-                                    k = 1;
-                                    winFeat = [];
-                                    for goodWin = 1:numOut
-                                        if outLen(goodWin) > 5
-                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
-                                        winFeat(k,:) = AreaFn(tmp);
-                                        k = k + 1;
-                                        end
-                                    end
-                                    tmpFeat(n,:) = mean(winFeat,1);                                    
-                                case 'energy'
-                                    k = 1;
-                                    winFeat = [];
-                                    for goodWin = 1:numOut
-                                        if outLen(goodWin) > 5
-                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
-                                        winFeat(k,:) = EnergyFn(tmp);
-                                        k = k + 1;
-                                        end
-                                    end
-                                    tmpFeat(n,:) = mean(winFeat,1);
-                            end
+                            tmpFeat(n,:) = zeros(1,nChan);
                         end
                     end
 
@@ -325,9 +241,6 @@ if parFlag    %if flag is set do processing in parallel
     fprintf('\n');
     feat = cell2mat(featTot);
     numNan = cell2mat(numNanTot);
-    if strcmp(feature,'dcn')
-        feat = feat(:,1);
-    end
     save([datasetFN '_' outLabel '.mat'],'feat','-v7.3');
     end
     
@@ -377,20 +290,20 @@ else          %do normal processing if flag is not set
             if(sum(isnan(blockData),1) == blockLenSecs*fs) % all 0's
                 nChan = numel(channels);
                 %calculate feature every winLen secs
-%                 numWins = ceil(size(blockData,1)/(winLen*fs));
                 winDisp = dispPercent*winLen;
                 numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
-                
                 tmpFeat = zeros(numWins,nChan);
                 tmpNan  = ones(numWins,nChan)*(winLen*fs);
             else       %do normal feature extraction
                 blockNan = blockData; %copy block data with Nans 
                 blockData(isnan(blockData)) = 0; %NaN's turned to zero
                 nChan = numel(channels);
+                
                 %calculate feature every winLen secs
                 winDisp = dispPercent*winLen;
                 numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
-                
+%                 numWins = ceil(size(blockData,1)/(winLen*fs));
+
                 tmpFeat = zeros(numWins,nChan);
                 tmpNan  = zeros(numWins,nChan);
                 for n = 1:numWins
@@ -400,107 +313,25 @@ else          %do normal processing if flag is not set
                         %Since all Nan set to 0 look for 0's instead of NaN
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
                         
-                        idxN = find(isnan(blockNan(startWinPt:endWinPt,1)) == 0);  %find all indices without Nan
-                        x = [0; cumsum(diff(idxN)~=1)];                 %find consecutive non Nan values
                         
-                        %check to see if there are any outages if there are
-                        %not then proceed normally else do computation to
-                        %componsate for Nans
-                        if max(x) == 0
+                       %only compute correlation for windows with zero nan
+                        if tmpNan(n,1) == 0
                             switch feature
-                                case 'power'
-                                    for c = 1:nChan
-                                        y = blockData(startWinPt:endWinPt,c);
-                                        [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                        tmpFeat(n,c) = bandpower(PSD,F,varargin{1},'psd');
-                                    end
-                                case 'dcn'
+                                case 'hfd'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,1) = DCNCalc(y);
-                                case 'll'
+                                    tmpFeat(n,:) = Higuchi_FD(y,2);
+                                case 'kfd'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = LLFn(y);
-                                case 'amp'
+                                    tmpFeat(n,:) = Katz_FD(y);
+                                case 'hurst'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = AmpFn(y);
-                                case 'area'
+                                    tmpFeat(n,:) = hurstExp(y);
+                                case 'specEn'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = AreaFn(y);                                    
-                                case 'energy'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,:) = EnergyFn(y);
+                                    tmpFeat(n,:) = spectral_Entropy(y);
                             end
                         else
-                            %number of consecutive outs
-                       	    numOut = max(x)+1;                                  
-                            idxStart = ones(numOut,1);    %start ind                
-                            idxEnd = ones(numOut,1);      %end ind
-                            idxEnd(end) = length(x);      %last end point is end
-
-                            %find all start and end index of outage
-                            idxEnd(1:end-1) = find(diff(x) > 0);
-                            idxStart(2:end) = find(diff(x) > 0) + 1;
-
-                            %Start/end/and length of outage
-                            startT = idxN(idxStart);   %values are not really time
-                            endT = idxN(idxEnd);
-                            outLen = (endT - startT);
-
-                            switch feature
-                                case 'power'
-                                    for c = 1:nChan
-                                        y = blockData(startWinPt:endWinPt,c);
-                                        [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                        tmpFeat(n,c) = bandpower(PSD,F,varargin{1},'psd');
-                                    end
-                                case 'dcn'
-                                    y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat(n,1) = DCNCalc(y);
-                                case 'll'
-                                    k = 1;
-                                    winFeat = [];
-                                    for goodWin = 1:numOut
-                                        if outLen(goodWin) > 0
-                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
-                                        winFeat(k,:) = LLFn(tmp);
-                                        k = k + 1;
-                                        end
-                                    end
-                                    tmpFeat(n,:) = mean(winFeat,1);
-                                case 'amp'
-                                    k = 1;
-                                    winFeat = [];
-                                    for goodWin = 1:numOut
-                                        if outLen(goodWin) > 5
-                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
-                                        winFeat(k,:) = AmpFn(tmp);
-                                        k = k + 1;
-                                        end
-                                    end
-                                    tmpFeat(n,:) = mean(winFeat,1);
-                                case 'area'
-                                    k = 1;
-                                    winFeat = [];
-                                    for goodWin = 1:numOut
-                                        if outLen(goodWin) > 5
-                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
-                                        winFeat(k,:) = AreaFn(tmp);
-                                        k = k + 1;
-                                        end
-                                    end
-                                    tmpFeat(n,:) = mean(winFeat,1);                                    
-                                case 'energy'
-                                    k = 1;
-                                    winFeat = [];
-                                    for goodWin = 1:numOut
-                                        if outLen(goodWin) > 0
-                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
-                                        winFeat(k,:) = EnergyFn(tmp);
-                                        k = k + 1;
-                                        end
-                                    end
-                                    tmpFeat(n,:) = mean(winFeat,1);
-                            end
+                            tmpFeat(n,:) = zeros(1,nChan);
                         end
                 end
                 
@@ -516,9 +347,6 @@ else          %do normal processing if flag is not set
     fprintf('\n');
     feat = cell2mat(feat);
     numNan = cell2mat(numNan);
-    if strcmp(feature,'dcn')
-        feat = feat(:,1);
-    end
     save([datasetFN '_' outLabel '.mat'],'feat','-v7.3');
     end
 end

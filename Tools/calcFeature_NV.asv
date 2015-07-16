@@ -3,10 +3,6 @@ function [feat, numNan] = calcFeature_NV(datasets,channels,feature,winLen,dispPe
 %       This function is used for feature extraction over long data sets
 %       able to select parflag to run processes in paralell.
 %
-%          -This  function scales the data appropriately based on the
-%          number of Nans contained in a window  
-%          -This function Includes ability for window overlap
-%
 % Author: Jared Wilson 
 % 4/8/15 v1 working
 %
@@ -76,8 +72,8 @@ ZCFn = @(x) sum((x(1:end-1,:)>repmat(mean(x),size(x,1)-1,1)) & x(2:end,:)<repmat
 LLFn = @(x) mean(abs(diff(x)));
 LLFn2 = @(X, winLen) conv2(abs(diff(X,1)),  repmat(1/winLen,winLen,1),'same');
 
-%mean windowed nonlinear energy -- teager energy. 
-EnergyNl = @(x) mean(bsxfun(@minus,x(2:end-1,:).^2, x(1:end-2,:).*x(3:end,:)),1);
+%mean windowed nonlinear energy 
+EnergyNl = @(x) mean();
 
 %% Initialization
 feature = lower(feature);

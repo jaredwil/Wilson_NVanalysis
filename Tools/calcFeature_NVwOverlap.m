@@ -1,11 +1,11 @@
-function [feat, numNan] = calcFeature_NV(datasets,channels,feature,winLen,dispPercent,outLabel,runIndex,blockLenSecs,parFlag,varargin)
+function [feat, numNan] = calcFeature_NVwOverlap(datasets,channels,feature,winLen,dispPercent,outLabel,runIndex,blockLenSecs,parFlag,varargin)
 %[feat, numNan] = calcFeature_wil(datasets,channels,feature,winLen,outLabel,runIndex,blockLenSecs,parFlag,varargin)
 %       This function is used for feature extraction over long data sets
 %       able to select parflag to run processes in paralell.
-%
-%          -This  function scales the data appropriately based on the
-%          number of Nans contained in a window  
-%          -This function Includes ability for window overlap
+%       Changes from calcFeature_NV
+%          -This scales the data appropriately based on the number of Nans
+%           contained in a window
+%          -Includes ability for window overlap
 %
 % Author: Jared Wilson 
 % 4/8/15 v1 working
@@ -28,6 +28,8 @@ function [feat, numNan] = calcFeature_NV(datasets,channels,feature,winLen,dispPe
 %   'channels'      :   vector of channels
 %   'winLen'        :   winLen = vector of windowlengths (s) to calculate
 %                       features over
+%   'dispPercent'   :   The percent of the total window length that each
+%                   window is moved by. must be (0-1)
 %   'outlabel'      :   Suffix to save features to
 %   (datasetname_outlabel.mat)
 %   'runIndex'      :   Set the length of analysis [beginSec endSec] in
@@ -76,8 +78,7 @@ ZCFn = @(x) sum((x(1:end-1,:)>repmat(mean(x),size(x,1)-1,1)) & x(2:end,:)<repmat
 LLFn = @(x) mean(abs(diff(x)));
 LLFn2 = @(X, winLen) conv2(abs(diff(X,1)),  repmat(1/winLen,winLen,1),'same');
 
-%mean windowed nonlinear energy -- teager energy. 
-EnergyNl = @(x) mean(bsxfun(@minus,x(2:end-1,:).^2, x(1:end-2,:).*x(3:end,:)),1);
+
 
 %% Initialization
 feature = lower(feature);
@@ -168,8 +169,7 @@ if parFlag    %if flag is set do processing in parallel
                 if(sum(isnan(blockData),1) == blockLenSecs*fs) % all 0's
                     nChan = numel(channels);
                     %calculate feature every winLen secs
-                    winDisp = dispPercent*winLen;
-                    numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
+                    numWins = ceil(size(blockData,1)/(winLen*fs));
                     tmpFeat = zeros(numWins,nChan);
                     tmpNan  = ones(numWins,nChan)*(winLen*fs);
                 else       %do normal feature extraction
@@ -177,14 +177,13 @@ if parFlag    %if flag is set do processing in parallel
                     blockData(isnan(blockData)) = 0; %NaN's turned to zero
                     nChan = numel(channels);
                     %calculate feature every winLen secs
-                    winDisp = dispPercent*winLen;
-                    numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
+                    numWins = ceil(size(blockData,1)/(winLen*fs));
                     tmpFeat = zeros(numWins,nChan);
                     tmpNan  = zeros(numWins,nChan);
                     for n = 1:numWins
                         %off set included
-                        startWinPt = round(1+(winDisp*(n-1)*fs));
-                        endWinPt = round(min(winDisp*n*fs,size(blockData,1)));
+                        startWinPt = round(1+(winLen*(n-1)*fs));
+                        endWinPt = round(min(winLen*n*fs,size(blockData,1)));
                         %Find number of Nan
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
 
@@ -377,10 +376,7 @@ else          %do normal processing if flag is not set
             if(sum(isnan(blockData),1) == blockLenSecs*fs) % all 0's
                 nChan = numel(channels);
                 %calculate feature every winLen secs
-%                 numWins = ceil(size(blockData,1)/(winLen*fs));
-                winDisp = dispPercent*winLen;
-                numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
-                
+                numWins = ceil(size(blockData,1)/(winLen*fs));
                 tmpFeat = zeros(numWins,nChan);
                 tmpNan  = ones(numWins,nChan)*(winLen*fs);
             else       %do normal feature extraction
@@ -388,15 +384,13 @@ else          %do normal processing if flag is not set
                 blockData(isnan(blockData)) = 0; %NaN's turned to zero
                 nChan = numel(channels);
                 %calculate feature every winLen secs
-                winDisp = dispPercent*winLen;
-                numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
-                
+                numWins = ceil(size(blockData,1)/(winLen*fs));
                 tmpFeat = zeros(numWins,nChan);
                 tmpNan  = zeros(numWins,nChan);
                 for n = 1:numWins
                         %off set included
-                        startWinPt = round(1+(winDisp*(n-1)*fs));
-                        endWinPt = round(min(winDisp*n*fs,size(blockData,1)));
+                        startWinPt = round(1+(winLen*(n-1)*fs));
+                        endWinPt = round(min(winLen*n*fs,size(blockData,1)));
                         %Since all Nan set to 0 look for 0's instead of NaN
                         tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
                         
