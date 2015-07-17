@@ -218,6 +218,9 @@ if parFlag    %if flag is set do processing in parallel
                                 case 'energy'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = EnergyFn(y);
+                                case 'nlenergy'
+                                    y = blockData(startWinPt:endWinPt,1:nChan);
+                                    tmpFeat(n,:) = EnergyNl(y);
                             end
                         else
                             %number of consecutive outs
@@ -284,6 +287,17 @@ if parFlag    %if flag is set do processing in parallel
                                         if outLen(goodWin) > 5
                                         tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
                                         winFeat(k,:) = EnergyFn(tmp);
+                                        k = k + 1;
+                                        end
+                                    end
+                                    tmpFeat(n,:) = mean(winFeat,1);
+                                case 'nlenergy'
+                                    k = 1;
+                                    winFeat = [];
+                                    for goodWin = 1:numOut
+                                        if outLen(goodWin) > 5
+                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
+                                        winFeat(k,:) = EnergyNl(tmp);
                                         k = k + 1;
                                         end
                                     end
@@ -429,6 +443,9 @@ else          %do normal processing if flag is not set
                                 case 'energy'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
                                     tmpFeat(n,:) = EnergyFn(y);
+                                case 'nlenergy'
+                                    y = blockData(startWinPt:endWinPt,1:nChan);
+                                    tmpFeat(n,:) = EnergyNl(y);
                             end
                         else
                             %number of consecutive outs
@@ -496,6 +513,17 @@ else          %do normal processing if flag is not set
                                         if outLen(goodWin) > 0
                                         tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
                                         winFeat(k,:) = EnergyFn(tmp);
+                                        k = k + 1;
+                                        end
+                                    end
+                                    tmpFeat(n,:) = mean(winFeat,1);
+                                case 'nlenergy'
+                                    k = 1;
+                                    winFeat = [];
+                                    for goodWin = 1:numOut
+                                        if outLen(goodWin) > 5
+                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
+                                        winFeat(k,:) = EnergyNl(tmp);
                                         k = k + 1;
                                         end
                                     end

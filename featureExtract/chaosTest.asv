@@ -17,16 +17,16 @@ min = 60; %sec;
 
 ch = 1:16;
 
-for i = 2:numel(pt)
+for i = 1:numel(pt)
     disp(['Progress: ' num2str(i) '/14'])
     %Start Session
     session = IEEGSession(pt{i},'jaredwil','jar_ieeglogin.bin') ;
     fs = session.data.sampleRate;               %Find sampling Rate
 
     label= 'Eigs_allCh_2Months';
-    hurstLabel = 'hurstExp_allCh_2Months';
 
-    [x, numNan{i}] = chaosExt(session.data, ch ,'hurst', min, 1, hurstLabel,[0 60*day], hour,  1);
+    
+     [x, numNan{i}] = chaosExt(session.data, ch ,'hfd', min, 1, label,[0 0.5*day], hour,  0);
 %    [energy{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'energy', min, labelEnergy,[0 60*day], hour,  1);
 
 end

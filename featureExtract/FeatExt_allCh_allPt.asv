@@ -1,4 +1,5 @@
-%Test the use of chaosExt
+%This script is used to find over the first 2 Months for each
+%patient
 
 % clear the workspace and console
 clear all; close all; clc;
@@ -15,18 +16,31 @@ day = 86400; %sec
 hour = 3600; %sec
 min = 60; %sec;
 
+ll = cell(length(pt),1);
+energy = cell(length(pt),1);
+numNan = cell(length(pt),1);
 ch = 1:16;
 
-for i = 2:numel(pt)
+
+for i = 1:length(pt)
+% for i = 4
     disp(['Progress: ' num2str(i) '/14'])
     %Start Session
     session = IEEGSession(pt{i},'jaredwil','jar_ieeglogin.bin') ;
     fs = session.data.sampleRate;               %Find sampling Rate
 
-    label= 'Eigs_allCh_2Months';
-    hurstLabel = 'hurstExp_allCh_2Months';
+    labelLL = 'LL_allCh_2Months_Scaled';
+    labelEnergy = 'Energy_allCh_2Months_Scaled';
+    labelNLenergy = 'NLenergy_allCh_2Months_Scaled';
 
-    [x, numNan{i}] = chaosExt(session.data, ch ,'hurst', min, 1, hurstLabel,[0 60*day], hour,  1);
+    labelTimeTest = 'Test';
+    
+     [nlEnergy, numNan{i}] = calcFeature_NV(session.data, ch ,'nlenergy', min, 1,labelNLenergy,[0 60*day], hour,  1);
 %    [energy{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'energy', min, labelEnergy,[0 60*day], hour,  1);
 
 end
+
+% p = profile('info');
+% profile off;
+% profsave(p,'parProfile_results')
+% save('myparProf.mat','p')
