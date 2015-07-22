@@ -4,10 +4,11 @@ setwd("C:/Users/Jared/Dropbox/NVanalysis_data/allCh_2months_OneminWinFeats/data_
 
 featData = read.table("LLEnergy_allPt.csv",header=FALSE, sep=",")
 gammaData = read.table("gammaBP_allPt.csv",header=FALSE, sep=",")
+areaData = read.table("AreaV2_allPt.csv",header=FALSE, sep=",")
 
-featData = cbind(featData,gammaData[,4:5])
+featData = cbind(featData,gammaData[,4:5],areaData[,4:5])
 
-names(featData) = c('Hospital','PatientID','Time','AvgLL','StdLL','AvgEnergy','StdEnergy','AvgGamma','StdGamma')
+names(featData) = c('Hospital','PatientID','Time','AvgLL','StdLL','AvgEnergy','StdEnergy','AvgGamma','StdGamma','AvgArea','StdArea')
 #make patient ID unique since multiple per hospital
 featData$PatientID = featData$Hospital*featData$PatientID 
 featData$Hospital = as.factor(featData$Hospital)
@@ -106,6 +107,21 @@ plot(fitted(mod),residuals(mod),ylim=c(-50,50))  #hertroskadisticity
 plot(newData$Time,residuals(mod),ylim=c(-50, 50))
 plot(newData$Time,fitted(mod)) 
 
+
+
+### Area 
+mod = lmer(AvgArea ~ Time + (1|PatientID) ,REML=FALSE,data=newData)
+mod.null = lmer(AvgArea ~ (1|PatientID) ,REML=FALSE,data=newData)
+anova(mod.null,mod) #LRT
+
+hist(residuals(mod),breaks=1000)
+boxplot(residuals(mod),ylim=c(-40,75))
+plot(residuals(mod),newData$AvgGamma)
+plot(fitted(mod),newData$AvgGamma)
+plot(fitted(mod),residuals(mod),ylim=c(-50,50))  #hertroskadisticity
+
+plot(newData$Time,residuals(mod),ylim=c(-50, 50))
+plot(newData$Time,fitted(mod)) 
 
 # #random slope and intercept 
 # #resulting anova p = 0.172

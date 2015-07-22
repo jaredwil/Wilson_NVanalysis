@@ -11,7 +11,10 @@ clc;
 %MAKE SURE these values are correct
 winSize = 1;  %seconds
 
-addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data'))
+% addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data'))
+addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\allCh_2months_OneminWinFeats\areaNew'))
+
+
 pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
     'NVC1001_25_005' 'NVC1001_24_001' 'NVC1001_24_002' 'NVC1001_24_004' ...
     'NVC1001_24_005' 'NVC1001_23_002' 'NVC1001_23_003' 'NVC1001_23_004' ...
