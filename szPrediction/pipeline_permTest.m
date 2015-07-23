@@ -1,4 +1,4 @@
-%Test script used for development of sz prediction algorithm pipline
+%Script to test grabbing interictal data randomly vs consecutivly
 %Jared Wilson
 %7/21/2015
 
@@ -41,7 +41,7 @@ winDisp = 30;
 %Get training Data
 %Sz horizon data
 [train, predIdx] = getWinFeats_Train(session, trainST, trainET, szHorizon, winLen, winDisp);
-%interictal data
+%interictal data retrieved from the first available blocks
 [trainInt] = Interict_train( session, predIdx, winLen, winDisp);
 
 %isolate time lables and training feats
@@ -57,7 +57,6 @@ avgFeats = mean(trainFeats,1);
 stdFeats = std(trainFeats,[],1);
 trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats), stdFeats);
 
-
 %%%%GET interictal training data from random blocks rather than the first
 %%%%few hours
 [trainRandInt] = InterictRand_train( session, predIdx, winLen, winDisp);
@@ -69,9 +68,7 @@ trainFeats_rand = [szhorzTrain;trainRandInt];
 %normalize features
 avgFeats_rand = mean(trainFeats_rand,1);
 stdFeats_rand = std(trainFeats_rand,[],1);
-trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats_rand), stdFeats_rand);
-
-
+trainFeats_rand = bsxfun(@rdivide, bsxfun(@minus,trainFeats_rand,avgFeats_rand), stdFeats_rand);
 
 %%
 %%%%%%%%%%%%%%%%%%%%% TRAINING SOME MODELS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -88,9 +85,13 @@ knnLabels(knnLabels >= 0 & knnLabels < 1*60*60) = 1; %between 2-1 hours
 knnLabels(knnLabels >= 1*60*60 & knnLabels < szHorizon*60*60) = 2; %between 2-1 hours
 knnLabels(knnLabels > szHorizon*60*60) = 3; %interictal
 
+knnLabels_rand = trainLabels_rand;
+knnLabels_rand(knnLabels_rand >= 0 & knnLabels_rand < 1*60*60) = 1; %between 2-1 hours
+knnLabels_rand(knnLabels_rand >= 1*60*60 & knnLabels_rand < szHorizon*60*60) = 2; %between 2-1 hours
+knnLabels_rand(knnLabels_rand > szHorizon*60*60) = 3; %interictal
+
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TESTING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 %get seizure testing data
 [test, testpredIdx] = getSzFeats(session, testST, testET, szHorizon, winLen, winDisp);
@@ -106,21 +107,22 @@ testLabels = [szhorzTsLabels; testIntLables];
 testFeats = [szhorzTest;testInt];
 
 %normalize features based on training mean and std
-testFeats = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats), stdFeats);
+testFeats_nr = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats), stdFeats);
+
+testFeats_rand = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats_rand), stdFeats_rand);
 
 %CREATE LABELS  classification classifying 1hr (1) vs 2hr (2) vs interictal (3)
 testLabels(testLabels >= 0 & testLabels < 1*60*60) = 1; %between 2-1 hours
 testLabels(testLabels >= 1*60*60 & testLabels < szHorizon*60*60) = 2; %between 2-1 hours
 testLabels(testLabels > szHorizon*60*60) = 3; %interictal
 
-predClass = knnclassify(testFeats,trainFeats,knnLabels,7);
+predClass = knnclassify(testFeats_nr,trainFeats,knnLabels,7);
+predClass_rand = knnclassify(testFeats_rand,trainFeats_rand,knnLabels_rand,7);
 
-accuracy = (sum(predClass == testLabels)/length(testLabels))*100;
+accuracy = (sum(predClass == testLabels)/length(testLabels))*100
+accuracyRand = (sum(predClass_rand == testLabels)/length(testLabels))*100
 
 
 Sen = (sum(predClass == 1 | predClass == 2 & testLabels == 1 | testLabels == 2)/sum(testLabels == 1 | testLabels == 2))*100
 
 Spec = (sum(predClass == 1 | predClass == 2 & testLabels == 3)/sum(testLabels == 3))*100
-
-
-

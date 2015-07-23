@@ -56,25 +56,26 @@ for i = 1:numel(pt)
     allFeats = cell(length(allLabels),1);
     for fts = 1:length(allLabels)
         curMat = [pt{i} '_' allLabels{fts} '.mat'];
-        tmp = cell2mat(struct2cell(load(curMat)));
-        %%%
-        % Normalize the average feature across channels
-        tmp = mean(tmp,2);
-        
-        avgFeat = mean(tmp);
-        stdFeat = std(tmp);
-        
-        %normalize
-        tmp = (tmp - avgFeat)./stdFeat;
-        tDays = (1:length(tmp))/60/24;
-        maxFeat = mean(tmp) + 8*std(tmp);
-        plot(tDays,tmp);
-        hold on;
-        ylim([0,maxFeat])
-        xlabel('Time (days)')
-        ylabel('Feature (units vary)')
-        
-        Annots = [];
+         tmp = strload(curMat);
+         t = fieldnames
+         allFeats{fts} = tmp.feat;
+    end
+
+
+    avgFeat = mean(feat,2);
+    tDays = (1:length(avgFeat))/60/24;
+    maxFeat = mean(avgFeat) + 8*std(avgFeat);
+    plot(tDays,avgFeat);
+    hold on;
+    ylim([0,maxFeat])
+    xlabel('Time (days)')
+    ylabel('Feature (units vary)')
+    
+    %%%
+    % Normalize the average feature across channels
+    
+
+    Annots = [];
     timeUS = [];
     channels = [];
     szTimes = [];
@@ -110,18 +111,9 @@ for i = 1:numel(pt)
     figure(20)
     hold on;
     for sz = 1:length(winSt)
-        plot(szT,tmp(winSt(sz):winEnd(sz)))
+        plot(szT,avgFeat(winSt(sz):winEnd(sz)))
     end
     vline(0)
-        
-%         allFeats{fts} = cell2mat(struct2cell(load(curMat)));
-    end
-    
-    
-   
-    
-
-    
     
     
     

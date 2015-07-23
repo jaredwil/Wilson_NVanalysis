@@ -32,6 +32,10 @@ numSz = length(szStartT);  %number of seizures in cur Pt.
 
 numCh = length(ptSession.data.channels);
 fs = ptSession.data.sampleRate;
+    
+%THIS VALUE CAN CHANGE IS THE NUMBER OF FEATURES EXTRACTED FROM EACH
+%CHANNEL
+numFeats = 8;
 %%
 %Begin Function
 bufferT = 30*60; %buffer time (seconds) after sz considered interictal currently set to 30mins
@@ -64,10 +68,6 @@ for sz = 1:numSz
 
     numWins = CalcNumWins(size(dataPreSz,1), fs, winLen, winDisp);
     
-    %THIS VALUE CAN CHANGE IS THE NUMBER OF FEATURES EXTRACTED FROM EACH
-    %CHANNEL
-    numFeats = 8;
-    
     feats = zeros(numWins,numCh*numFeats);
     for n = 1:numWins
         %off set included
@@ -89,6 +89,6 @@ end
     %convert to matrix
     trainFeats = cell2mat(trainFeats);
     %remove all feature vectors that contain all zeros
-    trainFeats(sum(trainFeats(:,2:end),2) == 0, :) = []; v 
+    trainFeats(sum(trainFeats(:,2:end),2) == 0, :) = []; 
 end
 

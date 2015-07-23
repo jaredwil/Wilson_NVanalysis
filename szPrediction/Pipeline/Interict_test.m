@@ -1,4 +1,4 @@
-function [ interFeats ] = Interict_train( ptSession, szpredIdx, winLen, winDisp )
+function [ interFeats ] = Interict_test( ptSession, szpredIdx, winLen, winDisp )
 %[ interFeats ] = InterIct_train( ptSession, szpredIdx, szEndT, winLen, winDisp )
 %   This function is used to extract interictal data from the NV patient
 %   data to be trained on for interictal classification. The times that
@@ -41,32 +41,36 @@ N = 0; %number of valid interictal feature vectors extracted
 numFeats = 8;
 %%
 %Begin Function
-endSearch = szpredIdx(2,end);  %if you reach this index stop search end of training data;
+endSearch = ptSession.data.channels(1).get_tsdetails.getDuration/1e6*fs;  %if you reach this index stop search end of training data;
+startSearch = szpredIdx(1,2); %start search at the end of the first testing seizure
 
-numBlocks = ceil(endSearch/fs/blockLenSecs);  %nubmer of blocks to go through
+numBlocks = ceil( ((endSearch/fs)-(startSearch/fs))/blockLenSecs);  %number of blocks to go through
 interFeats = cell(numBlocks,1);
 
+randBlocks = randperm(numBlocks);
+randBlocks = [randBlocks numBlocks+1];
 
+%initialize startIdx and endIx which tell what should be extracted
 % for j = 1:numBlocks
 j = 1;
 while(j < numBlocks)
-
-    %get start and end time for current block
-    startBlockPt = 1+(blockLenSecs*(j-1)*fs);
-    endBlockPt = min(blockLenSecs*j*fs,endSearch);
+    randj = randBlocks(j); %get a random block 
+    
+    %get data for current block                (include test set offset)
+    startBlockPt = 1+(blockLenSecs*(randj-1)*fs)      + startSearch;
+    endBlockPt = min(blockLenSecs*randj*fs,endSearch) + startSearch;
     
     %just skip block if either the start or end block pt is inside horizon
     if(sum(startBlockPt > szpredIdx(:,1)) > 0 && sum(startBlockPt < szpredIdx(:,2)) > 0 || ...
             sum(endBlockPt > szpredIdx(:,1)) > 0 && sum(endBlockPt < szpredIdx(:,1)) > 0)
-        
-        %skp this block and fill tmpFeats with all zeros (removed later)
-        tmpFeats = zeros(numWins,numCh*numFeats); 
-        
+        %skp this block and make tmpFeats all zeros
+        numWins = CalcNumWins(blockLenSecs*fs,fs,winLen,winDisp);
+        tmpFeats = zeros(numWins,numCh*numFeats); %initialize 
     else %do feature extraction
         blockData = ptSession.data.getvalues(startBlockPt:endBlockPt,1:numCh);
         
         if(sum(isnan(blockData),1) == blockLenSecs*fs)
-            j = j + 24; %skip ahead 24 hours
+%             j = j + 24; %skip ahead 24 hours
             tmpFeats = zeros(numWins,numCh*numFeats);
 
         else
@@ -101,7 +105,7 @@ while(j < numBlocks)
     %STOP if one of two conditions are met:
     %       1.) 5000 total interictal feature vectors have been extracted
     %       2.) end of search index has been reached
-    if(N > 1000 || (startBlockPt > endSearch) || (endBlockPt > endSearch) )
+    if(N > 1500 || (startBlockPt > endSearch) || (endBlockPt > endSearch) )
         break;
     end
     

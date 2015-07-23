@@ -1,10 +1,12 @@
-function [ interFeats ] = Interict_train( ptSession, szpredIdx, winLen, winDisp )
+function [ interFeats ] = InterictRand_train( ptSession, szpredIdx, winLen, winDisp )
 %[ interFeats ] = InterIct_train( ptSession, szpredIdx, szEndT, winLen, winDisp )
 %   This function is used to extract interictal data from the NV patient
 %   data to be trained on for interictal classification. The times that
 %   included sz and szpred Horizon are inputs to be skipped when searching
 %   for valid interictal data.
 %
+%       This function utilizes permutations to select a random subset of
+%       interictal data to train on vs the first few blocks avaialable.
 %
 % Inputs:
 %           ptSession - Entered IEEG session of pt. of interest
@@ -32,8 +34,13 @@ datasetFN = ptSession.data.snapName;
 numCh = length(ptSession.data.channels);
 fs = ptSession.data.sampleRate;
 blockLenSecs = 60*60; %block length to be extracted at a time (in seconds)
+numWins = CalcNumWins(blockLenSecs*fs,fs,winLen,winDisp); %number of windows per block
 
 N = 0; %number of valid interictal feature vectors extracted
+
+%THIS VALUE CAN CHANGE IS THE NUMBER OF FEATURES EXTRACTED FROM EACH
+%CHANNEL
+numFeats = 8;
 %%
 %Begin Function
 endSearch = szpredIdx(2,end);  %if you reach this index stop search end of training data;
@@ -41,36 +48,36 @@ endSearch = szpredIdx(2,end);  %if you reach this index stop search end of train
 numBlocks = ceil(endSearch/fs/blockLenSecs);  %nubmer of blocks to go through
 interFeats = cell(numBlocks,1);
 
-%initialize startIdx and endIx which tell what should be extracted
+randBlocks = randperm(numBlocks); %create a random order of the available
+randBlocks = [randBlocks numBlocks+1]; %hour blocks
+
 % for j = 1:numBlocks
 j = 1;
 while(j < numBlocks)
+    randj = randBlocks(j); %get a random block 
 
-    %get data for current block
-    startBlockPt = 1+(blockLenSecs*(j-1)*fs);
-    endBlockPt = min(blockLenSecs*j*fs,endSearch);
+    %get start and end time for current block
+    startBlockPt = 1+(blockLenSecs*(randj-1)*fs);
+    endBlockPt = min(blockLenSecs*randj*fs,endSearch);
     
     %just skip block if either the start or end block pt is inside horizon
     if(sum(startBlockPt > szpredIdx(:,1)) > 0 && sum(startBlockPt < szpredIdx(:,2)) > 0 || ...
             sum(endBlockPt > szpredIdx(:,1)) > 0 && sum(endBlockPt < szpredIdx(:,1)) > 0)
-        %skp this block
+        
+        %skp this block and fill tmpFeats with all zeros (removed later)
+        tmpFeats = zeros(numWins,numCh*numFeats); 
         
     else %do feature extraction
         blockData = ptSession.data.getvalues(startBlockPt:endBlockPt,1:numCh);
         
         if(sum(isnan(blockData),1) == blockLenSecs*fs)
-            j = j + 24; %skip ahead 24 hours
+%             j = j + 24; %skip ahead 24 hours
             tmpFeats = zeros(numWins,numCh*numFeats);
 
         else
             blockNan = blockData; %copy block data with Nans 
             blockData(isnan(blockData)) = 0; %NaN's turned to zero
 
-            numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
-
-            %THIS VALUE CAN CHANGE IS THE NUMBER OF FEATURES EXTRACTED FROM EACH
-            %CHANNEL
-            numFeats = 8;
             tmpFeats = zeros(numWins,numCh*numFeats);
             for n = 1:numWins
                 %off set included

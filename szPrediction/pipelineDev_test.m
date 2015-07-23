@@ -38,7 +38,10 @@ testET = endT(numTr+1:end);
 szHorizon = 2; %in hours
 winLen = 30;
 winDisp = 30;
+%Get training Data
+%Sz horizon data
 [train, predIdx] = getWinFeats_Train(session, trainST, trainET, szHorizon, winLen, winDisp);
+%interictal data retrieved from the first available blocks
 [trainInt] = Interict_train( session, predIdx, winLen, winDisp);
 
 %isolate time lables and training feats
@@ -49,13 +52,17 @@ intLables = ones(size(trainInt,1),1)*(szHorizon*60*60 + winLen);
 trainLabels = [szhorzLabels; intLables];
 trainFeats = [szhorzTrain;trainInt];
 
+%normalize features
+avgFeats = mean(trainFeats,1);
+stdFeats = std(trainFeats,[],1);
+trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats), stdFeats);
 
 %%
 %%%%%%%%%%%%%%%%%%%%% TRAINING SOME MODELS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Try this logistic regresion PDF thing
-lrLables = categorical(trainLabels/30); 
-
-B = mnrfit(trainFeats,lrLables);
+% lrLables = categorical(trainLabels/30); 
+% 
+% B = mnrfit(trainFeats,lrLables);
 
 %for K-nn
 %try a very simple classification classifying 2hr (2) vs 1hr (1) vs
@@ -68,22 +75,35 @@ knnLabels(knnLabels > szHorizon*60*60) = 3; %interictal
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TESTING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%THIS IS NOT HOW TRAINING DATA SHOULD BE EXTRACTED COME UP WITH SOMETHING
-%ELSE YOU IDIOT!!!!
-[test, testPredidx] = getWinFeats_Train(session, testST, testET, szHorizon, winLen, winDisp);
+%get seizure testing data
+[test, testpredIdx] = getSzFeats(session, testST, testET, szHorizon, winLen, winDisp);
+%get interictal testing data
+[testInt] = Interict_test(session, testpredIdx, winLen, winDisp);
 
-testFeats = test(:,2:end);
-testLabels = test(:,1);
+%create a single test matrix
+szhorzTest = test(:,2:end);
+szhorzTsLabels = test(:,1);
+testIntLables = ones(size(testInt,1),1)*(szHorizon*60*60 + winLen);
 
+testLabels = [szhorzTsLabels; testIntLables];
+testFeats = [szhorzTest;testInt];
+
+%normalize features based on training mean and std
+testFeats = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats), stdFeats);
+
+%CREATE LABELS  classification classifying 1hr (1) vs 2hr (2) vs interictal (3)
 testLabels(testLabels >= 0 & testLabels < 1*60*60) = 1; %between 2-1 hours
 testLabels(testLabels >= 1*60*60 & testLabels < szHorizon*60*60) = 2; %between 2-1 hours
 testLabels(testLabels > szHorizon*60*60) = 3; %interictal
 
-predClass = knnclassify(testFeats,trainFeats,trainLabels,9);
+predClass = knnclassify(testFeats,trainFeats,knnLabels,7);
 
-accuracy = (sum(predClass == testLabels)/length(testLabels))*100;
+accuracy = (sum(predClass == testLabels)/length(testLabels))*100
 
 
+Sen = (sum(predClass == 1 | predClass == 2 & testLabels == 1 | testLabels == 2)/sum(testLabels == 1 | testLabels == 2))*100
+
+Spec = (sum(predClass == 1 | predClass == 2 & testLabels == 3)/sum(testLabels == 3))*100
 
 
 

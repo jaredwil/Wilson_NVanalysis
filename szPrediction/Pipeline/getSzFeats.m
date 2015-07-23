@@ -1,5 +1,5 @@
-function [trainFeats, predIdx] = getWinFeats_Train(ptSession, szStartT, szEndT, szHorizon, winLen, winDisp)
-%[feats] = getWinFeats_Training(ptSession, szStartT, winLen, winDisp)
+function [extFeats, predIdx] = getSzFeats(ptSession, szStartT, szEndT, szHorizon, winLen, winDisp)
+%[trainFeats, predIdx] = getSzFeats(ptSession, szStartT, szEndT, szHorizon, winLen, winDisp)
 %   This function takes in the current patient iEEG session and extracts
 %   windowed features based on winLen and winDisp entered by the user.
 %   Features are only extracted from times that are within the determined
@@ -37,7 +37,7 @@ fs = ptSession.data.sampleRate;
 bufferT = 30*60; %buffer time (seconds) after sz considered interictal currently set to 30mins
 
 predIdx = zeros(length(szStartT),2);  %array containing all Idx to be ignored when finding inter-ictal data for training
-trainFeats = cell(numSz);
+extFeats = cell(numSz);
 %Loop through all Sz.
 for sz = 1:numSz
     horizStart = szStartT(sz) - szHorizon*3600; %compute the horizon start time1
@@ -83,12 +83,11 @@ for sz = 1:numSz
     labelTime = (szStartT(sz)-horizStart-winLen):(-winDisp):0;
     
     %create cell array to return feature vector and lables
-    trainFeats{sz} = [labelTime' feats];
+    extFeats{sz} = [labelTime' feats];
     disp(['Progress: ' num2str(sz) '/' num2str(numSz)])
 end
     %convert to matrix
-    trainFeats = cell2mat(trainFeats);
+    extFeats = cell2mat(extFeats);
     %remove all feature vectors that contain all zeros
-    trainFeats(sum(trainFeats(:,2:end),2) == 0, :) = []; v
+    extFeats(sum(extFeats(:,2:end),2) == 0, :) = []; 
 end
-
