@@ -1,0 +1,32 @@
+%Sz Prediction Pipeline v1 -- use of functions as much as possible
+%Jared Wilson
+%7/24/2015
+
+% clear the workspace and console
+clear all; close all; clc;
+warning('off')
+addpath(genpath('ieeg-matlab-1.8.3'))
+addpath(genpath('Wilson_NVanalysis'))
+
+%%
+% Define algorithm specifics 
+usernm = 'jaredwil';
+pswdBin = 'jar_ieeglogin.bin';
+trPct = 0.4;
+winLen = 30;
+winDisp = 30;
+szHorizon = 2; %hours
+
+% patients of interest on ieeg portal
+pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
+    'NVC1001_25_005' 'NVC1001_24_001' 'NVC1001_24_002' 'NVC1001_24_004' ...
+    'NVC1001_24_005' 'NVC1001_23_002' 'NVC1001_23_003' 'NVC1001_23_004' ...
+    'NVC1001_23_005' 'NVC1001_23_006' 'NVC1001_23_007'};
+
+%%
+%begin function
+%loop through all pts
+i = 12;  %%%%%TEMPORARY
+
+
+[trainFeats, trainLabels ] = szPred_train(pt{i}, usernm, pswdBin, trPct, winLen, winDisp, szHorizon );
