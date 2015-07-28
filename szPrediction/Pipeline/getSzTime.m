@@ -18,6 +18,9 @@ endT = [];
 if (size(ptSession.data.annLayer,1) ~= 0)
     for layer = 1:size(ptSession.data.annLayer,2)
         layerName = ptSession.data.annLayer(layer).name;
+        if(isempty(strfind(lower(layerName),'seizure')))
+            continue;
+        end
 
         %need to add to do this for only sz annot layers
         [~, timeUSec{layer}, ~] = getAllAnnots(ptSession.data,layerName);

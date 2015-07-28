@@ -1,4 +1,4 @@
-function [ interFeats ] = InterictRand_train( ptSession, szpredIdx, winLen, winDisp )
+function [ interFeats ] = InterictRand_train( ptSession, szpredIdx, winLen, winDisp , Nlim)
 %[ interFeats ] = InterIct_train( ptSession, szpredIdx, szEndT, winLen, winDisp )
 %   This function is used to extract interictal data from the NV patient
 %   data to be trained on for interictal classification. The times that
@@ -106,7 +106,7 @@ while(j < numBlocks)
     %STOP if one of two conditions are met:
     %       1.) 5000 total interictal feature vectors have been extracted
     %       2.) end of search index has been reached
-    if(N > 1000 || (startBlockPt > endSearch) || (endBlockPt > endSearch) )
+    if(N > Nlim || (startBlockPt > endSearch) || (endBlockPt > endSearch) )
         break;
     end
     

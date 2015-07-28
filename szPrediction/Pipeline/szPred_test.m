@@ -37,9 +37,21 @@ numTr = floor(length(startT)*trPct);  %number of training sz
 testST = startT(numTr+1:end);
 testET = endT(numTr+1:end);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%TEMPORARY TO INCREASE SPEED!!!!!!
+%if more than 30 training sz then only use first 30 
+if(length(testST) > 9)
+   testST = testST(1:9);
+   testET = testET(1:9);
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%get sz data
 [test, testpredIdx] = getSzFeats(session, testST, testET, szHorizon, winLen, winDisp);
 %get interictal testing data
-[testInt] = Interict_test(session, testpredIdx, winLen, winDisp);
+Nlim = size(test,1);
+[testInt] = Interict_test(session, testpredIdx, winLen, winDisp, Nlim);
 
 %create a single test matrix
 szhorzTest = test(:,2:end);
