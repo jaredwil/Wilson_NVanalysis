@@ -41,7 +41,7 @@ N = 0; %number of valid interictal feature vectors extracted
 numFeats = 8;
 %%
 %Begin Function
-endSearch = szpredIdx(2,end);  %if you reach this index stop search end of training data;
+% endSearch = szpredIdx(2,end);  %if you reach this index stop search end of training data;
 
 numBlocks = ceil(endSearch/fs/blockLenSecs);  %nubmer of blocks to go through
 interFeats = cell(numBlocks,1);
