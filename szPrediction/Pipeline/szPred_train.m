@@ -33,6 +33,15 @@ fs = session.data.sampleRate;               %Find sampling Rate
 %get ALL seziure start and end times from anotations
 [startT, endT] = getSzTime(session);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ %THIS PART IS TEMPORARY TO ABORT IF NO ANNOTATION OR IF TO MANY
+if(isempty(startT) || length(startT) > 80)
+    trainFeats = [];
+    trainLabels = [];
+    return;
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 numTr = floor(length(startT)*trPct);  %number of training sz
 
 %split the sz into train/test sets

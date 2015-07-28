@@ -32,6 +32,12 @@ i = 12;  %%%%%TEMPORARY for debug
 %features extracted defined in szPred_winFeatExt <- change this file
 [trainFeats, trainLabels ] = szPred_train(pt{i}, usernm, pswdBin, trPct, winLen, winDisp, szHorizon);
 
+%Skip if there are no train features meaning no sz annotation
+if(isempty(trainFeats))
+    disp([pt{i} ' SKIPPPED'])
+   continue; 
+end
+
 %normalize features
 avgFeats = mean(trainFeats,1);
 stdFeats = std(trainFeats,[],1);
@@ -92,3 +98,4 @@ svmTestLabels(svmTestLabels > szHorizon*60*60) = 0; %interictal
 % Spec = (sum(predClass == 1 | predClass == 2 & testLabels == 3)/sum(testLabels == 3))*100
 % 
 % 
+

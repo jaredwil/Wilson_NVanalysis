@@ -33,17 +33,22 @@ fs = session.data.sampleRate;               %Find sampling Rate
 %get ALL seziure start and end times from anotations
 [startT, endT] = getSzTime(session);
 
-
+                      %THIS PART IS TEMPORARY
+if(isempty(startT) || length(startT) > 80)
+    return;
+end
 
 numTr = floor(length(startT)*trPct);  %number of training sz
-numTest = length(startT) - numTr;     %number of testing sz
 
 %split the sz into train/test sets
 trainST = startT(1:numTr);
 trainET = endT(1:numTr);
 
-testST = startT(numTr+1:end);
-testET = endT(numTr+1:end);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%TEMPORARY TO INCREASE SPEED!!!!!!
+%if more than 30 training sz then only use first 30 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Get training Data
 %Sz horizon data

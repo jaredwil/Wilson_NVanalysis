@@ -48,7 +48,6 @@ numBlocks = ceil( ((endSearch/fs)-(startSearch/fs))/blockLenSecs);  %number of b
 interFeats = cell(numBlocks,1);
 
 randBlocks = randperm(numBlocks);
-randBlocks = [randBlocks numBlocks+1];
 
 %initialize startIdx and endIx which tell what should be extracted
 % for j = 1:numBlocks
@@ -88,7 +87,7 @@ while(j < numBlocks)
 
                 %only compute the feature vector for windows that have zero
                 %Nans
-                if(numNan == 0)
+                if(numNan < 400)
                     %compute feature vector for current window
                     tmpFeats(n,:) = szPred_winFeatExt(y,fs);
                     N = N + 1; %increase tracked number of valid windows
@@ -105,7 +104,7 @@ while(j < numBlocks)
     %STOP if one of two conditions are met:
     %       1.) 5000 total interictal feature vectors have been extracted
     %       2.) end of search index has been reached
-    if(N > Nlim || (startBlockPt > endSearch) || (endBlockPt > endSearch) )
+    if(N > Nlim)
         break;
     end
     
