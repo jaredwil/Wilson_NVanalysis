@@ -40,10 +40,7 @@ testET = endT(numTr+1:end);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%TEMPORARY TO INCREASE SPEED!!!!!!
 %if more than 30 training sz then only use first 30 
-if(length(testST) > 9)
-   testST = testST(1:9);
-   testET = testET(1:9);
-end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

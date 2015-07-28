@@ -15,7 +15,7 @@ pswdBin = 'jar_ieeglogin.bin';
 trPct = 0.7;
 winLen = 30;
 winDisp = 30;
-szHorizon = 2; %hours
+szHorizon = 1; %hours
 
 % patients of interest on ieeg portal
 pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
@@ -38,8 +38,9 @@ stdFeats = std(trainFeats,[],1);
 trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats), stdFeats);
 
 %SVM Labels
-trainLabels(trainLabels >= 0 & trainLabels < szHorizon*60*60) = 1; %preictal
-trainLabels(trainLabels > szHorizon*60*60) = 0; %interictal
+svmLabels = trainLabels;
+svmLabels(svmLabels >= 0 & svmLabels < szHorizon*60*60) = 1; %preictal
+svmLabels(svmLabels > szHorizon*60*60) = 0; %interictal
 
 %%
 %HERE IS WHERE YOU WOULD TRAIN YOUR MODEL
@@ -54,7 +55,7 @@ trainLabels(trainLabels > szHorizon*60*60) = 0; %interictal
 
 % Train SVM model
 
-model = svmtrain(trainLabels, trainFeats, '-t 0 -b 1'); 
+model = svmtrain(svmLabels, trainFeats, '-t 0 -b 1 -c 0.5'); 
 
 
 %%
@@ -69,11 +70,11 @@ testFeats = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats), stdFeats);
 %make predictions based on training model
 
 %SVM
-testLabels(testLabels >= 0 & testLabels < szHorizon*60*60) = 1; %preictal
-testLabels(testLabels > szHorizon*60*60) = 0; %interictal
+svmTestLabels = testLabels;
+svmTestLabels(svmTestLabels >= 0 & svmTestLabels < szHorizon*60*60) = 1; %preictal
+svmTestLabels(svmTestLabels > szHorizon*60*60) = 0; %interictal
 
-[predLab, accuracy, prob_estimates] = svmpredict(testLabels, testFeats, model, '-b 1');
-
+[predLab, accuracy, prob_estimates] = svmpredict(svmTestLabels, testFeats, model, '-b 1');
 
 %simple test K-nn
 %CREATE LABELS  classification classifying 1hr (1) vs 2hr (2) vs interictal (3)
