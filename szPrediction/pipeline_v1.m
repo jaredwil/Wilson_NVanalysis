@@ -96,6 +96,6 @@ svmTestLabels(svmTestLabels > szHorizon*60*60) = 0; %interictal
 % Sen = (sum(predClass == 1 | predClass == 2 & testLabels == 1 | testLabels == 2)/sum(testLabels == 1 | testLabels == 2))*100
 % 
 % Spec = (sum(predClass == 1 | predClass == 2 & testLabels == 3)/sum(testLabels == 3))*100
-% 
+%  
 % 
 
