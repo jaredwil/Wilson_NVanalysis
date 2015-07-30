@@ -22,7 +22,7 @@ min = 60; %sec
 
 allPt_avgDay = zeros(1440,numel(pt));
 
-for i = 4%:numel(pt)
+for i = 8%:numel(pt)
     
     
     session = IEEGSession(pt{i},'jaredwil','jar_ieeglogin.bin') ;
@@ -65,7 +65,7 @@ for i = 4%:numel(pt)
         
         %find all spea
         %tmp is normalized to unit std and 0 mean so:
-        thresh = 6*std(tmp);
+        thresh = 5*std(tmp);
         tmpIdx = find(tmp > thresh);  %get all windows that exceed threshold
 
         tDays = (1:length(tmp))/60/24;
@@ -94,29 +94,37 @@ for i = 4%:numel(pt)
         spikeEEG = zeros(winLen*fs,length(sampSpike));
         nospikeEEG = zeros(winLen*fs,length(sampNotSpike));
         timeMin = linspace(1,60,winLen*fs);
-        figure(2)
-        subplot(2,1,1)
-        title('EEG from 20 60 Second Time Windows with LL above 6 std from the Mean')
+%         figure(2)
+%         subplot(2,1,1)
+        figure(3)
+        title('EEG from 20 60 Second Time Windows with LL above 5 std from the Mean')
         hold on;
         %get the spike windows
         for j = 1:length(sampSpike)
             startT = (winLen*(sampSpike(j) - 1)*fs + 1);  
             endT   = winLen*sampSpike(j)*fs;
             eegTmp = session.data.getvalues(startT:endT,1:16);
+            
+%             eegTmp = session.data.getvalues(startT:endT,1);
+
             spikeEEG(:,j) = mean(eegTmp,2);
-            plot(timeMin,spikeEEG(:,j))
+            plot(timeMin,spikeEEG(:,j) + j*20)
             disp(['Done: ' num2str(j/length(sampSpike))])
         end
-        subplot(2,1,2)
-        title('EEG from 20 60 Second Time Windows with LL below 6 std from the Mean')
+        figure(4)
+%         subplot(2,1,2)
+        title('EEG from 20 60 Second Time Windows with LL below 5 std from the Mean')
         hold on;
         %get the non spike windows
         for j = 1:length(sampNotSpike)
             startT = (winLen*(sampNotSpike(j) - 1)*fs + 1);  
             endT   = winLen*sampNotSpike(j)*fs;
             eegTmp = session.data.getvalues(startT:endT,1:16);
+            
+%             eegTmp = session.data.getvalues(startT:endT,1);
+
             nospikeEEG(:,j) = mean(eegTmp,2);
-            plot(timeMin,nospikeEEG(:,j));
+            plot(timeMin,nospikeEEG(:,j) + j*2);
             disp(['Done: ' num2str(j/length(sampNotSpike))])
         end
         
