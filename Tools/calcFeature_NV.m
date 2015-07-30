@@ -342,7 +342,7 @@ if parFlag    %if flag is set do processing in parallel
     if strcmp(feature,'dcn')
         feat = feat(:,1);
     end
-    save([datasetFN '_' outLabel '.mat'],'feat','-v7.3');
+    save([datasetFN '_'  feature '_' outLabel '.mat'],'feat','-v7.3');
     end
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
@@ -547,7 +547,7 @@ else          %do normal processing if flag is not set
     if strcmp(feature,'dcn')
         feat = feat(:,1);
     end
-    save([datasetFN '_' outLabel '.mat'],'feat','-v7.3');
+    save([datasetFN '_'  feature '_' outLabel '.mat'],'feat','-v7.3');
     end
 end
 

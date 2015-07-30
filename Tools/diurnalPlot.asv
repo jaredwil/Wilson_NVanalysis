@@ -8,7 +8,7 @@ function [ wk1Feats,wk2Feats ] = diurnalPlot(session)
     dayAust = day*(400/399.6097561);
     hour = 3600; %sec
     hourAust = 3600*(400/399.6097561);
-    minute = 60; %sec
+    min = 60; %sec
     minAust = 60*(400/399.6097561);
     
     week = day*7;
@@ -23,23 +23,23 @@ function [ wk1Feats,wk2Feats ] = diurnalPlot(session)
     label2 = 'Aust';
     ch = 1:16;
 
-    [tmp1, numN1] = calcFeature_NV(session.data, ch ,'energy', minute, 1 ,label, Norm1 , hour,  1);
-    [tmp2, numN2] = calcFeature_NV(session.data, ch ,'energy', minute, 1 ,label, Norm2 , hour,  1);
-
-%use delta power
-%     [~, ~, ~, ~, tmp1,numNan1] = calcBandPower(session.data, ch ,'gamma',minute,label,Norm1, hour,  1);
-%     [~, ~, ~, ~, tmp2,numNan2] = calcBandPower(session.data, ch ,'gamma',minute,label,Norm2, hour,  1);
+%     [tmp1, numN1] = calcFeature_NV(session.data, ch ,'ll', min, 1 ,label, Norm1 , hour,  1);
+%     [tmp2, numN2] = calcFeature_NV(session.data, ch ,'ll', min, 1 ,label, Norm2 , hour,  1);
     
-    [tmpA1, numA1] = calcFeature_NV(session.data, ch ,'energy', minAust, 1 ,label2, Aust1 , hourAust,  1);
-%     [tmpA1, numA1] = calcBandPower(session.data, ch ,'gamma',minute,label2,Aust1, hour,  1);
+    [~, ~, ~, ~, tmp1,numNan1] = calcBandPower(session.data, ch ,minute,label,Norm1, hour,  1);
+    [~, ~, ~, ~, tmp2,numNan2] = calcBandPower(session.data, ch ,minute,label,Norm2, hour,  1);
+
+    
+    
+    [tmpA1, numA1] = calcFeature_NV(session.data, ch ,'ll', minAust, 1 ,label2, Aust1 , hourAust,  1);
+    [tmpA1, numA1] = calcFeature_NV(session.data, ch ,'ll', minAust, 1 ,label2, Aust1 , hourAust,  1);
+
     tmpA1 = tmpA1(1:length(tmp1),:);
     numA1 = numA1(1:length(tmp1),:);
     
-    
-  [tmpA2, numA2] = calcFeature_NV(session.data, ch ,'energy', minAust, 1 ,label2, Aust2 , hourAust,  1);
-%     [tmpA2, numA2] = calcBandPower(session.data, ch ,'gamma',minute,label2,Aust2, hour,  1);
+    [tmpA2, numA1] = calcFeature_NV(session.data, ch ,'ll', minAust, 1 ,label2, Aust2 , hourAust,  1);
     tmpA2 = tmpA2(1:length(tmp1),:);
-    numA2 = numA2(1:length(tmp1),:);
+    numA2 = numA1(1:length(tmp1),:);
     
     
 %     session.data.setResample(399.6)

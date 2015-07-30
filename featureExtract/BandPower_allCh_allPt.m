@@ -39,7 +39,7 @@ for i = 1:length(pt)
     
     label = 'allCh_2Months';
 
-    [alphaP{i}, betaP{i}, gammaP{i}, thetaP{i}, deltaP{i},numNan{i}] = calcBandPower(session.data, ch ,'gamma',min,label,[0 60*day], hour,  1);
+    [alphaP{i}, betaP{i}, gammaP{i}, thetaP{i}, deltaP{i},numNan{i}] = calcBandPower(session.data, ch, 'gamma' ,min,label,[0 60*day], hour,  1);
 
 %    [alphaP{i}, numNan{i}] = calcBandPower(session.data, ch ,'alpha',min,labelAlpha,[0 60*day], hour,  1);
 %    [betaP{i}, numNan{i}]  = calcBandPower(session.data, ch ,'beta',min,labelBeta,[0 60*day], hour,  1);

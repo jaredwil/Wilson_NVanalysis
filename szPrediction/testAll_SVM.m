@@ -15,7 +15,7 @@ pswdBin = 'jar_ieeglogin.bin';
 trPct = 0.7;
 winLen = 30;
 winDisp = 30;
-szHorizon = 1; %hours
+szHorizon = 2; %hours
 
 % patients of interest on ieeg portal
 pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
@@ -34,6 +34,11 @@ allFeats_test   = cell(numel(pt),1);
 allLab_test     = cell(numel(pt),1);
 accuracy        = cell(numel(pt),1);
 predLab         = cell(numel(pt),1);
+
+
+%create log file
+fileID = fopen('svmLog.txt','wt');
+fclose(fileID);
 for i = 1:numel(pt)
 
     %Get train features and training labels (lables -> minutes to sz)
@@ -63,7 +68,7 @@ for i = 1:numel(pt)
     %%
     %HERE IS WHERE YOU WOULD TRAIN YOUR MODEL
     % Train SVM model
-    model{i} = svmtrain(svmLabels, trainFeats, '-t 0 -b 1 -c 0.5'); 
+    model{i} = svmtrain(svmLabels, trainFeats, '-t 0 -b 1 -c 1'); 
 
     %%
     % Get TEST FEATS
@@ -85,5 +90,10 @@ for i = 1:numel(pt)
 
     allFeats_test{i} = testFeats;
     allLab_test{i} = testLabels;
- 
+    
+    %write a log file
+    fileID = fopen('svmLog.txt','w');
+    nbytes = fprintf(fileID,'%f\n',i);
+    fclose(fileID);
+    
 end

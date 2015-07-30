@@ -25,7 +25,7 @@ day = 86400; %sec
 hour = 3600; %sec
 min = 60; %sec
 
-i = 4;
+i = 8;
 
 session = IEEGSession(pt{i},'jaredwil','jar_ieeglogin.bin') ;
 fs = session.data.sampleRate;               %Find sampling Rate
