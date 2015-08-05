@@ -1,12 +1,13 @@
 %Jared D. Wilson
-%7/29/2015
-%Create a movie of the diurnal plot for a feature for one channel at 400 Hz
-%vs a movie for one channel at 399.6 Hz.
+%8/4/2015
+%diurnal shift attempt
 
 %Start 
 clear all; close all; clc;
 warning('off')
 addpath(genpath('ieeg-matlab-1.8.3'))
+addpath(genpath('Wilson_NVanalysis'))
+
 %add path to all mat file with feature file in them.
 addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\allCh_2months_OneminWinFeats'))
 set(0, 'DefaulttextInterpreter', 'none') 
@@ -31,24 +32,27 @@ minAust = 60*(400/399.6097561);
 week = day*7;
 weekAust = week*(400/399.6097561);
 
-label = 'US';
 ch = 1;
+ 
+%%%%%
+%Used for scaling
+minDif_wk = ((400-399.6097561)*60*60*24*7)/(400*60); %number of samples that should be shifted every week
+minDif_day = (400-399.6097561)*60*60*24/(400*60); %number of samples that should be shifted every day
 
 numWks = 52;
 winLen = minute;
 tmpLen = week/minute;
-avgFeat_Day = zeros(numWks,day*fs);
-stdFeat_Day = zeros(numWks,day*fs);
-feat = zeros((numWks*week*fs/winLen),numel(ch));
+avgFeat_Day = zeros((day/minute),numWks);
+stdFeat_Day = zeros((day/minute),numWks);
 %go through an entire year
 for wk = 1:numWks
     weekSt  = ((wk-1)*week) + 1;
     weekEnd = (wk)*week;
-    label = ['week' num2str(wk)];
+    label = 'week';
 
     %get the current week
-%     [tmp, numNan] = calcFeature_NV(session.data, ch ,'nlenergy', minute, 1 ,label, [weekSt weekEnd] , hour,  1); 
-    [~, ~, ~, ~, tmp,numNan] = calcBandPower(session.data, ch ,minute,label,[weekSt weekEnd], hour,  1);
+%     [tmp, numNan] = calcFeature_NV(session.data, ch ,'ll', minute, 1 ,label, [weekSt weekEnd] , hour,  1); 
+     [~, ~, ~, ~, tmp,numNan] = calcBandPower(session.data, ch ,'gamma',minute,label,[weekSt weekEnd], hour,  1);
 
 %     feat((tmpLen*(wk-1)+1):tmpLen*(wk),:) = tmp;
     
@@ -56,38 +60,39 @@ for wk = 1:numWks
        tmp = mean(tmp,2); 
     end
     
+    feat(((wk-1)*(week/winLen)+1):(wk*(week/winLen)),:) = tmp;
+    
     
     tmp = (tmp - mean(tmp))./std(tmp);
+    
         
     maxFeat = mean(tmp) + 2*std(tmp);
     minFeat = mean(tmp) - 2*std(tmp);
-
+    
     days = 7;
-
     numIdx = floor(length(tmp)/days);
 
-
     avgDay = reshape(tmp,numIdx,days);
-    avgFeat_Day(wk,:) = mean(avgDay,2);
-    stdFeat_Day(wk,:) = std(avgDay,[],2);
-
+    avgFeat_Day(:,wk) = mean(avgDay,2);
+    stdFeat_Day(:,wk) = std(avgDay,[],2);
+     
+    disp(['Week: ' num2str(wk) ' Done'])
 
 end
-
 
 timeHours = linspace(0,24,numIdx)';
-%make a movie
-for wk = 1:52
-    %create graph
-    figure(1)
-    errorbar(timeHours,avgFeat_Day(wk,:),stdFeat_Day(wk,:));
-    hold on;
-    plot(timeHours,avgFeat_Day(wk,:))
-    xlabel('Time (h)')
-    ylim([minFeat maxFeat])
-    title(['Diurnal Pattern Week: ' num2str(wk)])
-    xlim([0 24])
-    %wait for a couple seconds
-    pause(5)
+figure(1)
+hold on;
+for  wk = 1:numWks
+    avgFeat_Dayshift(:,wk) = circshift(avgFeat_Day(:,wk),floor(minDif_day*((wk-1)*7)));
+    f = plot(timeHours,avgFeat_Dayshift(:,wk));
+    disp(f)
+    pause(1);
 end
+
+
+
+
+
+
 

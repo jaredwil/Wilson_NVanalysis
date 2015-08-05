@@ -81,13 +81,15 @@ EnergyNl = @(x) mean(bsxfun(@minus,x(2:end-1,:).^2, x(1:end-2,:).*x(3:end,:)),1)
 
 %% Initialization
 feature = lower(feature);
+%load in filter 
+Num = load('NVlowpass.mat');
+Num = Num.Num;
 %blockLenSecs = 3600; %get data in blocks (use as defult)
 
 %% Parallel Processing
 if parFlag    %if flag is set do processing in parallel
     
     for i = 1:numel(datasets)
-
         %if all selected analyze entire dataset
         if (strcmpi('all',runIndex) == 1) 
             datasetFN = datasets(i).snapName;
@@ -131,13 +133,13 @@ if parFlag    %if flag is set do processing in parallel
         %%%REC CHANGE
         featTot = cell(parBlocks*numPar,1);
         numNanTot = cell(parBlocks*numPar,1);
-        
+%         addAttachedFiles(gcp,'NVlowpass.mat')
+
         parfor p = 1:numPar
                 %warning('off')
                 %Initilize variable to be used specifically in each proc.
                 parfeat = cell(parBlocks,1);
                 parnumNan = cell(parBlocks,1);
-                
                 session = IEEGSession(datasetFN,username,pswd);
                 
                 %create data variable
@@ -176,6 +178,16 @@ if parFlag    %if flag is set do processing in parallel
                     blockNan = blockData; %copy block data with Nans 
                     blockData(isnan(blockData)) = 0; %NaN's turned to zero
                     nChan = numel(channels);
+                    
+                    %filter data using filtfilt
+%                     %filter data  (speed up by making a matrix operation???)
+%                     for chF = 1:nChan
+%                        blockData(:,chF) = filtfilt(Num,1,blockData(:,chF)); 
+%                     end
+
+%                     %filter data using filter along columns
+                    blockData = filter(Num,1,blockData);
+                    
                     %calculate feature every winLen secs
                     winDisp = dispPercent*winLen;
                     numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
@@ -401,6 +413,16 @@ else          %do normal processing if flag is not set
                 blockNan = blockData; %copy block data with Nans 
                 blockData(isnan(blockData)) = 0; %NaN's turned to zero
                 nChan = numel(channels);
+                
+                    %filter data using filtfilt
+%                     %filter data  (speed up by making a matrix operation???)
+%                     for chF = 1:nChan
+%                        blockData(:,chF) = filtfilt(Num,1,blockData(:,chF)); 
+%                     end
+
+                %filter data using filter along columns
+                blockData = filter(Num,1,blockData);
+                    
                 %calculate feature every winLen secs
                 winDisp = dispPercent*winLen;
                 numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
