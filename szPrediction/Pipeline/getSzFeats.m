@@ -36,7 +36,7 @@ fs = ptSession.data.sampleRate;
 
 %THIS VALUE CAN CHANGE IS THE NUMBER OF FEATURES EXTRACTED FROM EACH
 %CHANNEL
-numFeats = size(FeatExt(ptSession.data.getvalues(1:10,1:numCh),fs),2);
+numFeats = size(FeatExt(ptSession.data.getvalues(1:200,1:numCh),fs),2);
 %%
 %Begin Function
 bufferT = 30*60; %buffer time (seconds) after sz considered interictal currently set to 30mins
@@ -60,7 +60,17 @@ for sz = 1:numSz
     end 
             
     %Get DA DATA! 
-    dataPreSz = ptSession.data.getvalues((horizStart*fs):(szStartT(sz)*fs),1:numCh);
+    err = 0;
+    %try to get data ten times this is to prevent timeouts
+    while err < 4
+        try    
+            dataPreSz = ptSession.data.getvalues((horizStart*fs):(szStartT(sz)*fs),1:numCh);
+            break;
+        catch
+            err = err + 1;    
+        end
+    end
+    
     predIdx(sz,1) = horizStart*fs;    %Keep track of start of sz pred horizon
     predIdx(sz,2) = (szEndT(sz)+bufferT)*fs; %record buffer time as 30 mins after end of sz
     

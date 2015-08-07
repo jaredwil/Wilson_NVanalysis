@@ -13,9 +13,9 @@ addpath(genpath('Wilson_NVanalysis'))
 usernm = 'jaredwil';
 pswdBin = 'jar_ieeglogin.bin';
 trPct = 0.7;
-winLen = 30;
-winDisp = 30;
-szHorizon = 1; %hours
+winLen = 5;
+winDisp = 2.5;
+szHorizon = 2; %hours
 
 % patients of interest on ieeg portal
 pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
@@ -61,7 +61,7 @@ svmLabels(svmLabels > szHorizon*60*60) = 0; %interictal
 
 % Train SVM model
 
-model = svmtrain(svmLabels, trainFeats, '-t 0 -b 1 -c 0.5'); 
+model = svmtrain(svmLabels, trainFeats, '-t 0 -b 1 -c 1'); 
 
 
 %%

@@ -37,26 +37,49 @@ deltaB = [0.1 4];
 % for upper triangle indexing
 ix = triu( ones(size(y,2)), 1 );
 
+%define options for eigs function 
+opts.tol = 1e-3;  %change tolerance
+
 %%Begin Function
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  %Spectral Featrues
-    tic;
+%  tic;
     [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd'); 
+    PSD(F > 47,:) = [];
+    F(F > 47) = [];
     alpha = bandpower(PSD,F,alphaB,'psd');
     beta  = bandpower(PSD,F,betaB,'psd');
     delta = bandpower(PSD,F,deltaB,'psd');
     gamma = bandpower(PSD,F,gammaB,'psd');
     theta = bandpower(PSD,F,thetaB,'psd');
-    toc;
+% toc;
+
+%average across freq bins
+    PSDnorm = bsxfun(@rdivide,bsxfun(@minus,PSD,mean(PSD,2)), std(PSD,[],2)+2e-13);
+    %nonlinear
+    %cross correlation between channels
+    psdCorr = corrcoef(PSDnorm(2:end,:));  %omit zero hurtz
+%     psdEigs = eigs(psdCorr,opts)';              %only return the six highest
     
+    % flatten upper triangle of correlation matrix
+    psdCorr = triu( psdCorr, 1 );
+    psdCorr = psdCorr( find(ix) )';
+
+%is computing fft PSD faster??? --NO     
 %     tic;
 %     Pxx = abs(fft(y)).^2;
-%     pFreq = linspace(0,fs,length(y)/2);
+%     pFreq = linspace(0,fs,length(y)/2 + 1);
 %     
-%     fx = sum( Pxx((pFreq < 4),1) );
-% 
+%     alpha = bandpower(Pxx(1:length(y)/2 + 1,:),pFreq,alphaB,'psd');
+%     beta  = bandpower(Pxx(1:length(y)/2 + 1,:),pFreq,betaB,'psd');
+%     delta = bandpower(Pxx(1:length(y)/2 + 1,:),pFreq,deltaB,'psd');
+%     gamma = bandpower(Pxx(1:length(y)/2 + 1,:),pFreq,gammaB,'psd');
+%     theta = bandpower(Pxx(1:length(y)/2 + 1,:),pFreq,thetaB,'psd');
 %     toc;
-    
-    
+
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
  %Temporal Features
     %amplitude
     Amp = AmpFn(y);
@@ -67,25 +90,37 @@ ix = triu( ones(size(y,2)), 1 );
     
 
     %skewness and kurtosis
-    fxskew = skewness(x);
-    fxkurt = kurtosis(x);
-    
-    %nonlinear
-    %cross correlation between channels
-    xcorr = corrcoef(y);
-    
-    
-    % channel covariance 
-    xcov = cov(x);
-    assert( isequal( size(xcov), [ nchans nchans ] ) );
+    fxskew = skewness(y);
+    fxkurt = kurtosis(y);
 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ %%nonlinear
+    %%cross correlation between channels
+    ycorr = corrcoef(y);
+%     yEigs = eigs(ycorr,opts)';  %only return the six highest
+    %flatten correlation matrix
+    ycorr = triu( ycorr, 1 );
+    fycorr = ycorr( find(ix) )';
+    
+    
+    %%channel covariance 
+    ycov = cov(y);
     % flatten upper triangle of covariance matrix
-    xcov = triu( xcov, 1 );
-    fxcov = xcov( find(ix) )';
-    assert( isrow(fxcov) );
+    ycov = triu( ycov, 1 );
+    fycov = ycov( find(ix) )';
     
+    %KFD fractal Dim
     
-    feats = [Amp LL nlEng alpha beta delta gamma theta fxskew fxkurt];
+    %Hurst exponenst
+%     KFD = zeros(1,size(y,2));
+    HFD = zeros(1,size(y,2));  %higuchi fractal dimension
+    kmax = 2; %kmax = 2
+    for ch = 1:size(y,2)
+%         KFD(ch) = Katz_FD(y(:,ch));
+        HFD(ch) = Higuchi_FD(y(:,ch),kmax);   
+    end
+    
+    feats = [Amp LL nlEng alpha beta delta gamma theta fxskew fxkurt psdCorr fycorr fycov HFD];
 
 end
 

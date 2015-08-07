@@ -38,7 +38,7 @@ N = 0; %number of valid interictal feature vectors extracted
 
 %THIS VALUE CAN CHANGE IS THE NUMBER OF FEATURES EXTRACTED FROM EACH
 %CHANNEL
-numFeats = size(FeatExt(ptSession.data.getvalues(1:10,1:numCh),fs),2);
+numFeats = size(FeatExt(ptSession.data.getvalues(1:200,1:numCh),fs),2);
 %%
 %Begin Function
 % endSearch = szpredIdx(2,end);  %if you reach this index stop search end of training data;
