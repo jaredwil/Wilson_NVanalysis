@@ -38,9 +38,10 @@ numWins = CalcNumWins(blockLenSecs*fs,fs,winLen,winDisp); %number of windows per
 
 N = 0; %number of valid interictal feature vectors extracted
 
+
 %THIS VALUE CAN CHANGE IS THE NUMBER OF FEATURES EXTRACTED FROM EACH
 %CHANNEL
-numFeats = 8;
+numFeats = size(FeatExt(ptSession.data.getvalues(1:10,1:numCh),fs),2);
 %%
 %Begin Function
 endSearch = szpredIdx(2,end);  %if you reach this index stop search end of training data;
@@ -64,36 +65,36 @@ while(j < numBlocks)
             sum(endBlockPt > szpredIdx(:,1)) > 0 && sum(endBlockPt < szpredIdx(:,1)) > 0)
         
         %skp this block and fill tmpFeats with all zeros (removed later)
-        tmpFeats = zeros(numWins,numCh*numFeats); 
+        tmpFeats = zeros(numWins,numFeats); 
         
     else %do feature extraction
         blockData = ptSession.data.getvalues(startBlockPt:endBlockPt,1:numCh);
         
         if(sum(isnan(blockData),1) == blockLenSecs*fs)
 %             j = j + 24; %skip ahead 24 hours
-            tmpFeats = zeros(numWins,numCh*numFeats);
+            tmpFeats = zeros(numWins,numFeats);
 
         else
             blockNan = blockData; %copy block data with Nans 
             blockData(isnan(blockData)) = 0; %NaN's turned to zero
 
-            tmpFeats = zeros(numWins,numCh*numFeats);
+            tmpFeats = zeros(numWins,numFeats);
             for n = 1:numWins
                 %off set included
                 startWinPt = round(1+(winDisp*(n-1)*fs));
                 endWinPt = round(min([winDisp*n*fs,size(blockData,1)]));               
                 y = blockData(startWinPt:endWinPt,:);
                 %find the number of Nans in the current window
-                numNan = sum(isnan(blockNan(startWinPt:endWinPt,:)),1); 
+                numNan = sum(isnan(blockNan(startWinPt:endWinPt,1)),1); 
 
                 %only compute the feature vector for windows that have a
                 %reasonable amount of good data.
-                if(numNan < 400) 
+                if(numNan(1) < 400) 
                     %compute feature vector for current window
-                    tmpFeats(n,:) = szPred_winFeatExt(y,fs);
+                    tmpFeats(n,:) = FeatExt(y,fs);
                     N = N + 1; %increase tracked number of valid windows
                 else 
-                    tmpFeats(n,:) = zeros(1,numCh*numFeats);
+                    tmpFeats(n,:) = zeros(1,numFeats);
                 end
             end
         end

@@ -1,4 +1,4 @@
-%Test script used for development of sz prediction algorithm pipline
+ %Test script used for development of sz prediction algorithm pipline
 %Jared Wilson
 %7/21/2015
 

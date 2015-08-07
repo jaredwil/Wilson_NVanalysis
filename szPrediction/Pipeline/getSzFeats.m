@@ -33,9 +33,10 @@ numSz = length(szStartT);  %number of seizures in cur Pt.
 numCh = length(ptSession.data.channels);
 fs = ptSession.data.sampleRate;
 
+
 %THIS VALUE CAN CHANGE IS THE NUMBER OF FEATURES EXTRACTED FROM EACH
 %CHANNEL
-numFeats = 8;
+numFeats = size(FeatExt(ptSession.data.getvalues(1:10,1:numCh),fs),2);
 %%
 %Begin Function
 bufferT = 30*60; %buffer time (seconds) after sz considered interictal currently set to 30mins
@@ -68,15 +69,23 @@ for sz = 1:numSz
 
     numWins = CalcNumWins(size(dataPreSz,1), fs, winLen, winDisp);
     
-    feats = zeros(numWins,numCh*numFeats);
+    feats = zeros(numWins,numFeats);
     for n = 1:numWins
         %off set included
         startWinPt = round(1+(winDisp*(n-1)*fs));
         endWinPt = round(min([winDisp*n*fs,size(dataPreSz,1)]));               
         y = dataPreSz(startWinPt:endWinPt,:);
+        
+        numNan = sum(isnan(y),1); 
 
-        %compute feature vector for current window
-        feats(n,:) = szPred_winFeatExt(y,fs);
+        %only compute the feature vector for windows that have a
+        %reasonable amount of good data.
+        if(numNan(1) < 400) 
+            %compute feature vector for current window
+            feats(n,:) = FeatExt(y,fs);
+        else
+            feats(n,:) = zeros(1,numFeats);
+        end
 
     end
 

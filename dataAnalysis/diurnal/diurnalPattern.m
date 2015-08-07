@@ -154,15 +154,15 @@ end   %this end corrosponds to going throgh all pts.
 % avgFeat_allPt = mean(allPt_avgDay,2);
 % stdFeat_allPt = std(allPt_avgDay,[],2);
 % 
-% figure(22)
-% errorbar(timeHours,avgFeat_allPt,stdFeat_allPt);
-% hold on;
-% plot(timeHours,avgFeat_allPt,'k','LineWidth',3);
-% ylim([minFeat,maxFeat])
-% xlim([0,24])
-% set(gca,'FontSize',15);
-% set(gca,'LineWidth',2);
-% set(gcf,'Position',get(0,'Screensize')); 
-% xlabel('Time (Hours)')
-% ylabel('Normalized Feature (Non-Linear Energy)')
-% title(['All Paitents Normalized Non-Linear Energy Averaged Over Each Day'])
+figure(22)
+errorbar(timeHours,avgFeat_allPt,stdFeat_allPt);
+hold on;
+plot(timeHours,avgFeat_allPt,'k','LineWidth',3);
+ylim([minFeat,maxFeat])
+xlim([0,24])
+set(gca,'FontSize',15);
+set(gca,'LineWidth',2);
+set(gcf,'Position',get(0,'Screensize')); 
+xlabel('Time (Hours)')
+ylabel('Normalized Feature (Non-Linear Energy)')
+title(['All Paitents Normalized Non-Linear Energy Averaged Over Each Day'])

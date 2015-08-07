@@ -38,7 +38,7 @@ N = 0; %number of valid interictal feature vectors extracted
 
 %THIS VALUE CAN CHANGE IS THE NUMBER OF FEATURES EXTRACTED FROM EACH
 %CHANNEL
-numFeats = 8;
+numFeats = size(FeatExt(ptSession.data.getvalues(1:10,1:numCh),fs),2);
 %%
 %Begin Function
 endSearch = ptSession.data.channels(1).get_tsdetails.getDuration/1e6*fs;  %if you reach this index stop search end of training data;
@@ -64,19 +64,19 @@ while(j < numBlocks)
             sum(endBlockPt > szpredIdx(:,1)) > 0 && sum(endBlockPt < szpredIdx(:,1)) > 0)
         %skp this block and make tmpFeats all zeros
         numWins = CalcNumWins(blockLenSecs*fs,fs,winLen,winDisp);
-        tmpFeats = zeros(numWins,numCh*numFeats); %initialize 
+        tmpFeats = zeros(numWins,numFeats); %initialize 
     else %do feature extraction
         blockData = ptSession.data.getvalues(startBlockPt:endBlockPt,1:numCh);
         
         if(sum(isnan(blockData),1) == blockLenSecs*fs)
 %             j = j + 24; %skip ahead 24 hours
-            tmpFeats = zeros(numWins,numCh*numFeats);
+            tmpFeats = zeros(numWins,numFeats);
 
         else
             blockNan = blockData; %copy block data with Nans 
             blockData(isnan(blockData)) = 0; %NaN's turned to zero
 
-            tmpFeats = zeros(numWins,numCh*numFeats);
+            tmpFeats = zeros(numWins,numFeats);
             for n = 1:numWins
                 %off set included
                 startWinPt = round(1+(winDisp*(n-1)*fs));
@@ -89,10 +89,10 @@ while(j < numBlocks)
                 %Nans
                 if(numNan < 400)
                     %compute feature vector for current window
-                    tmpFeats(n,:) = szPred_winFeatExt(y,fs);
+                    tmpFeats(n,:) = FeatExt(y,fs);
                     N = N + 1; %increase tracked number of valid windows
                 else 
-                    tmpFeats(n,:) = zeros(1,numCh*numFeats);
+                    tmpFeats(n,:) = zeros(1,numFeats);
                 end
             end
         end
