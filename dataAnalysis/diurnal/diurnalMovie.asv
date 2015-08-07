@@ -25,15 +25,13 @@ fs = session.data.sampleRate;             %Find sampling Rate
 
 %define all time in seconds
 day = 86400; %sec
-% dayAust = day*(400/399.6097561);
-dayAust = day*(399.6097561/400);
-
+dayAust = day*(400/399.6097561);
 hour = 3600; %sec
-hourAust = 3600*(399.6097561/400);
+hourAust = 3600*(400/399.6097561);
 minute = 60; %sec
-minAust = 60*(399.6097561/400);
+minAust = 60*(400/399.6097561);
 week = day*7;
-weekAust = week*(399.6097561/400);
+weekAust = week*(400/399.6097561);
 
 ch = 1;
 
@@ -112,7 +110,6 @@ timeHours = linspace(0,24,numIdx)';
 for wk = 1:52
     %create graph
     figure(1)
-    grid on;
     errorbar(timeHours,avgFeat_Day(:,wk),stdFeat_Day(:,wk));
     plot(timeHours,avgFeat_Day(:,wk))
     xlabel('Time (h)')
@@ -122,27 +119,4 @@ for wk = 1:52
     %wait for a couple seconds
     pause(1)
 end
-
-
-%Austrailian Movie
-timeHours = linspace(0,24,numIdx)';
-%make a movie
-for wk = 1:52
-    %create graph
-    figure(2)
-    grid on;
-    errorbar(timeHours,avgFeatA_Day(:,wk),stdFeatA_Day(:,wk));
-    plot(timeHours,avgFeatA_Day(:,wk))
-    xlabel('Time (h)')
-    ylim([-2.5 2.5])
-    title(['Diurnal Pattern Aust. Week: ' num2str(wk)])
-    xlim([0 24])
-    %wait for a couple seconds
-    pause(1)
-end
-
-
-
-
-
 

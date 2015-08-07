@@ -80,11 +80,10 @@ end
 
 load('diurnalLP.mat')
 load('diurnalLP2.mat')
-
+feat = (feat - mean(feat))./std(feat);
 cycFeat = smooth(filter(dirNum2,1,feat),50);
 cycFeat = decimate(cycFeat,60);
-[s, w, t] = spectrogram(cycFeat,12*7);
-
+[s, w, t] = spectrogram(cycFeat,24,[],1028*2*2,24);
 
 y = fft(x);                            % Compute DFT of x
 p = unwrap(angle(y));                  % Phase
@@ -93,9 +92,8 @@ plot(f,p)
 xlabel 'Frequency (arb.)'
 ylabel 'Phase (rad)'
 
-
 figure(1)
 plot(cycFeat);
-
+ss
 
 

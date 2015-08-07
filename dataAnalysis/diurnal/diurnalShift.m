@@ -24,20 +24,19 @@ fs = session.data.sampleRate;             %Find sampling Rate
 
 %define all time in seconds
 day = 86400; %sec
-dayAust = day*(400/399.6097561);
+% dayAust = day*(400/399.6097561);
+dayAust = day*(399.6097561/400);
+
 hour = 3600; %sec
-hourAust = 3600*(400/399.6097561);
+hourAust = 3600*(399.6097561/400);
 minute = 60; %sec
-minAust = 60*(400/399.6097561);
+minAust = 60*(399.6097561/400);
 week = day*7;
-weekAust = week*(400/399.6097561);
+weekAust = week*(399.6097561/400);
 
 ch = 1;
  
-%%%%%
-%Used for scaling
-minDif_wk = ((400-399.6097561)*60*60*24*7)/(400*60); %number of samples that should be shifted every week
-minDif_day = (400-399.6097561)*60*60*24/(400*60); %number of samples that should be shifted every day
+
 
 numWks = 52;
 winLen = minute;
@@ -80,18 +79,29 @@ for wk = 1:numWks
 
 end
 
+%%%%%%%%%%%%%%%%  COMPARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%
+%Used for scaling
+minDif_wk = ((400-399.6097561)*60*60*24*7)/(400*60); %number of samples that should be shifted every week
+minDif_day = (400-399.6097561)*60*60*24/(400*60); %number of samples that should be shifted every day
+
+%create a movie showing how to compensate for the difference in sampling
+%rate to ensure dirunal pattern does not shift 
+
+%@400Hz
 timeHours = linspace(0,24,numIdx)';
 figure(1)
-hold on;
 for  wk = 1:numWks
     avgFeat_Dayshift(:,wk) = circshift(avgFeat_Day(:,wk),floor(minDif_day*((wk-1)*7)));
     f = plot(timeHours,avgFeat_Dayshift(:,wk));
-    disp(f)
+    grid on;
+    xlabel('Time (h)')
+    ylim([-2.5 2.5])
+    title(['Diurnal Pattern Week: ' num2str(wk)])
+    xlim([0 24])
     pause(1);
 end
-
-
-
 
 
 

@@ -5,14 +5,15 @@ function [ wk1Feats,wk2Feats ] = diurnalPlot(session)
 
     %define all time in seconds
     day = 86400; %sec
-    dayAust = day*(400/399.6097561);
+
+    dayAust = day*(399.6097561/400);
+
     hour = 3600; %sec
-    hourAust = 3600*(400/399.6097561);
+    hourAust = 3600*(399.6097561/400);
     minute = 60; %sec
-    minAust = 60*(400/399.6097561);
-    
+    minAust = 60*(399.6097561/400);
     week = day*7;
-    weekAust = week*(400/399.6097561);
+    weekAust = week*(399.6097561/400);
 
     Norm1  =  [(1 + 30*day) (40*day)];
     Norm2  =  [(1 + 300*day) (310*day)];
