@@ -56,7 +56,7 @@ opts.tol = 1e-3;  %change tolerance
 % toc;
 
 %average across freq bins
-    PSDnorm = bsxfun(@rdivide,bsxfun(@minus,PSD,mean(PSD,2)), std(PSD,[],2)+2e-13);
+    PSDnorm = bsxfun(@rdivide,bsxfun(@minus,PSD,mean(PSD,2)), std(PSD,[],2) + 2e-13);
     %nonlinear
     %cross correlation between channels
     psdCorr = corrcoef(PSDnorm(2:end,:));  %omit zero hurtz
@@ -65,6 +65,8 @@ opts.tol = 1e-3;  %change tolerance
     % flatten upper triangle of correlation matrix
     psdCorr = triu( psdCorr, 1 );
     psdCorr = psdCorr( find(ix) )';
+    save('fuckedupWindow.mat','y');
+    assert( sum(isnan(psdCorr)) == 0 , 'Nans');
 
 %is computing fft PSD faster??? --NO     
 %     tic;

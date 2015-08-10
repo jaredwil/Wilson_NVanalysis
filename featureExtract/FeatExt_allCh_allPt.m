@@ -23,7 +23,7 @@ numNan = cell(length(pt),1);
 ch = 1:16;
 
 
-for i = 9:length(pt)
+for i = 1:length(pt)
 % for i = 4
     disp(['Progress: ' num2str(i) '/14'])
     %Start Session
@@ -33,7 +33,7 @@ for i = 9:length(pt)
     label = 'filt';
     labelTest1 = 'Test1';
 
-    [ll{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'ll', min, 1,label,[0 60*day], hour,  1);
+    [ll{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'area', min, 1,label,[0 60*day], hour,  1);
     
 %    [energy{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'energy', min, labelEnergy,[0 60*day], hour,  1);
 

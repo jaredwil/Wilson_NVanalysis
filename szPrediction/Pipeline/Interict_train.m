@@ -84,7 +84,7 @@ while(j < numBlocks)
 
                 %only compute the feature vector for windows that have zero
                 %Nans
-                if(numNan == 0)
+                if(sum(numNan) < 400 && sum(any(y)) ~= 0) 
                     %compute feature vector for current window
                     tmpFeats(n,:) = FeatExt(y,fs);
                     N = N + 1; %increase tracked number of valid windows

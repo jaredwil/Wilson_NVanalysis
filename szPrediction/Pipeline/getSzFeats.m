@@ -76,6 +76,10 @@ for sz = 1:numSz
     
     dataPreSzNan = dataPreSz; %copy block data with Nans 
     dataPreSz(isnan(dataPreSz)) = 0; %NaN's turned to zero
+    
+    %filter the data
+    load('NVlowpass.mat')    
+    dataPreSz = filtfilt(Num,1,dataPreSz);
 
     numWins = CalcNumWins(size(dataPreSz,1), fs, winLen, winDisp);
     
@@ -90,7 +94,7 @@ for sz = 1:numSz
 
         %only compute the feature vector for windows that have a
         %reasonable amount of good data.
-        if(numNan(1) < 400) 
+        if(sum(numNan) < 400 && sum(any(y)) ~= 0) 
             %compute feature vector for current window
             feats(n,:) = FeatExt(y,fs);
         else
