@@ -71,11 +71,11 @@ if(poolsize == 0)
     end
 end
 
-szEndT = [0; szEndT];
+% szEndT = [0; szEndT];
 % parfor_progress(numSz);
 
 for sz = 1:numSz
-%     warning('off');
+    warning('off');
 %     parSession = IEEGSession(datasetFN,username,pswd); %start session on worker
     
     horizStart = szStartT(sz) - szHorizon*3600; %compute the horizon start time1
@@ -116,7 +116,7 @@ for sz = 1:numSz
     numWins = CalcNumWins(size(dataPreSz,1), fs, winLen, winDisp);
     
 %     feats = zeros(numWins,numFeats);
-    feats = cell(numWins,1);
+    feats = cells(numWins,1);
     parfor n = 1:numWins
         %off set included
         startWinPt = round(1+(winDisp*(n-1)*fs));

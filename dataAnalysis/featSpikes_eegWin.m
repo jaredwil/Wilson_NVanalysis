@@ -132,3 +132,25 @@ for i = 8%:numel(pt)
     
    
 end
+
+
+%find which time I plotted
+        timeSec = linspace(0,1,401);
+        spikeEEG = zeros(length(timeSec),length(spikeIdx));
+        figure(300)
+        %get the spike windows
+        for j = 1:length(spikeIdx)
+            startT = (winLen*(spikeIdx(j) - 1)*fs + 1);  
+            endT   = startT + 400; %get one second
+            eegTmp = session.data.getvalues(startT:endT,1:16);
+            
+%             eegTmp = session.data.getvalues(startT:endT,1);
+
+            spikeEEG(:,j) = eegTmp(:,3);
+            subplot(3,1,1);
+            plot(timeSec,spikeEEG(:,j))
+            title(['number: ' num2str(j)])
+            pause(3)
+%             disp(['Done: ' num2str(j/length(sampSpike))])
+        end
+

@@ -65,7 +65,8 @@ opts.tol = 1e-3;  %change tolerance
     % flatten upper triangle of correlation matrix
     psdCorr = triu( psdCorr, 1 );
     psdCorr = psdCorr( find(ix) )';
-    save('fuckedupWindow.mat','y');
+%     save('fuckedupWindow.mat','y');  %used to find the window that caused
+%                                      %the error
     assert( sum(isnan(psdCorr)) == 0 , 'Nans');
 
 %is computing fft PSD faster??? --NO     

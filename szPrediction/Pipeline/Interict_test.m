@@ -51,6 +51,8 @@ randBlocks = randperm(numBlocks);
 
 %initialize startIdx and endIx which tell what should be extracted
 % for j = 1:numBlocks
+
+
 j = 1;
 while(j < numBlocks)
     randj = randBlocks(j); %get a random block 
@@ -70,14 +72,15 @@ while(j < numBlocks)
         
         if(sum(isnan(blockData),1) == blockLenSecs*fs)
 %             j = j + 24; %skip ahead 24 hours
-            tmpFeats = zeros(numWins,numFeats);
-
+%             tmpFeats = zeros(numWins,numFeats);
+            tmpFeats = cell(numWins,1);
         else
             blockNan = blockData; %copy block data with Nans 
             blockData(isnan(blockData)) = 0; %NaN's turned to zero
 
-            tmpFeats = zeros(numWins,numFeats);
-            for n = 1:numWins
+%             tmpFeats = zeros(numWins,numFeats);
+            tmpFeats = cell(numWins,1);
+            parfor n = 1:numWins
                 %off set included
                 startWinPt = round(1+(winDisp*(n-1)*fs));
                 endWinPt = round(min([winDisp*n*fs,size(blockData,1)]));               
@@ -89,12 +92,22 @@ while(j < numBlocks)
                 %Nans
                 if(sum(numNan) < 400 && sum(any(y)) ~= 0) 
                     %compute feature vector for current window
-                    tmpFeats(n,:) = FeatExt(y,fs);
-                    N = N + 1; %increase tracked number of valid windows
+%                     tmpFeats(n,:) = FeatExt(y,fs);
+%                     N = N + 1; %increase tracked number of valid windows
+
+                    tmpFeats{n} = FeatExt(y,fs);
+
                 else 
-                    tmpFeats(n,:) = zeros(1,numFeats);
+%                     tmpFeats(n,:) = zeros(1,numFeats);
+                    tmpFeats{n} = zeros(1,numFeats);
+
                 end
             end
+            
+            tmpFeats = cell2mat(tmpFeats);
+            tmpFeats(sum(tmpFeats,2) == 0, :) = [];
+            N = N + size(tmpFeats,1);
+            
         end
          
     end

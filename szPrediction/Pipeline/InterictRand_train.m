@@ -51,6 +51,30 @@ interFeats = cell(numBlocks,1);
 
 randBlocks = randperm(numBlocks); %create a random order of the available
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Establish parpool
+p = gcp('nocreate'); % If no pool, do not create new one.
+if isempty(p)        %if not p will contain all info about current pool;
+    poolsize = 0;
+else
+    poolsize = p.NumWorkers;
+end
+%initialize paralell pool if available
+if(poolsize == 0)
+
+    myCluster = parcluster('local');
+    numWork = myCluster.NumWorkers;
+
+    if(numWork < 2)  %processing is done on a laptop so don't do it in parallel
+        parpool('local',1)
+    elseif(numWork > 6) %limit the number of workers to 6
+        parpool('local',6)
+    else  %set up a parallel pool with max number of workers available between 2 and 6
+        parpool(myCluster)
+    end
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % for j = 1:numBlocks
 j = 1;
 while(j < numBlocks)
@@ -72,31 +96,42 @@ while(j < numBlocks)
         
         if(sum(isnan(blockData),1) == blockLenSecs*fs)
 %             j = j + 24; %skip ahead 24 hours
-            tmpFeats = zeros(numWins,numFeats);
-
+%             tmpFeats = zeros(numWins,numFeats);
+            tmpFeats = cell(numWins,1);
         else
             blockNan = blockData; %copy block data with Nans 
             blockData(isnan(blockData)) = 0; %NaN's turned to zero
 
-            tmpFeats = zeros(numWins,numFeats);
-            for n = 1:numWins
+%             tmpFeats = zeros(numWins,numFeats);
+            tmpFeats = cell(numWins,1);
+            parfor n = 1:numWins
                 %off set included
                 startWinPt = round(1+(winDisp*(n-1)*fs));
                 endWinPt = round(min([winDisp*n*fs,size(blockData,1)]));               
                 y = blockData(startWinPt:endWinPt,:);
                 %find the number of Nans in the current window
-                numNan = sum(isnan(blockNan(startWinPt:endWinPt,1)),1); 
+                numNan = sum(isnan(blockNan(startWinPt:endWinPt,:)),1); 
 
-                %only compute the feature vector for windows that have a
-                %reasonable amount of good data.
-                if(sum(numNan) < 400 && sum(any(y)) ~= 0)  
+                %only compute the feature vector for windows that have zero
+                %Nans
+                if(sum(numNan) < 400 && sum(any(y)) ~= 0) 
                     %compute feature vector for current window
-                    tmpFeats(n,:) = FeatExt(y,fs);
-                    N = N + 1; %increase tracked number of valid windows
+%                     tmpFeats(n,:) = FeatExt(y,fs);
+%                     N = N + 1; %increase tracked number of valid windows
+
+                    tmpFeats{n} = FeatExt(y,fs);
+
                 else 
-                    tmpFeats(n,:) = zeros(1,numFeats);
+%                     tmpFeats(n,:) = zeros(1,numFeats);
+                    tmpFeats{n} = zeros(1,numFeats);
+
                 end
             end
+            
+            tmpFeats = cell2mat(tmpFeats);
+            tmpFeats(sum(tmpFeats,2) == 0, :) = [];
+            N = N + size(tmpFeats,1);
+
         end
          
     end
