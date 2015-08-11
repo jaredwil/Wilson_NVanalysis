@@ -62,11 +62,11 @@ if(poolsize == 0)
     myCluster = parcluster('local');
     numWork = myCluster.NumWorkers;
 
-    if(numWork < 2)  %processing is done on a laptop so don't do it in parallel
+    if(numWork <= 2)  %processing is done on a laptop so don't do it in parallel
         parpool('local',1)
-    elseif(numWork > 6) %limit the number of workers to 6
-        parpool('local',6)
-    else  %set up a parallel pool with max number of workers available between 2 and 6
+    elseif(numWork > 8) %limit the number of workers to 6
+        parpool('local',8)
+    else  %set up a parallel pool with max number of workers available between 3 and 5
         parpool(myCluster)
     end
 end

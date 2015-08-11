@@ -122,7 +122,7 @@ if parFlag    %if flag is set do processing in parallel
         %Number of workers is determined by the pool that is set. This
         %determines the number of tasks that will be allocated to each
         %worker
-%         numPar = 6;     
+        numPar = 6;     
         username = 'jaredwil'; % <<< These values should also be inputs somehow???
         pswd = 'jar_ieeglogin.bin';% <<  ^^
 
@@ -135,64 +135,78 @@ if parFlag    %if flag is set do processing in parallel
 %         parNan = cell(numPar,1);
         
         %%%REC CHANGE
-        featTot = cell(numBlocks,1);
-        numNanTot = cell(numBlocks,1);
-%         addAttachedFiles(gcp,'NVlowpass.mat')
-
-%% Feature extraction loop
         feat = cell(numBlocks,1);
         numNan = cell(numBlocks,1);
-        reverseStr = '';
-        for j = 1:numBlocks
-            %Get data
-            startBlockPt = 1+(blockLenSecs*(j-1)*fs)+ startSec*fs;
-            endBlockPt = min(blockLenSecs*j*fs,numPoints)+ startSec*fs;
-            blockData = datasets(i).getvalues(startBlockPt:endBlockPt,channels);
-            
+%       addAttachedFiles(gcp,'NVlowpass.mat')
 
+        parfor j = 1:numBlocks
             
-            %%%%%DO a check to see if the entire block is Nan if this is
-            %%%%%true then skip this block. Ideally returning an indication
-            %%%%%that this row was skipped (return 0's) to speed up
-            %%%%%computation. 
-            if(sum(isnan(blockData),1) == blockLenSecs*fs) % all 0's
-                nChan = numel(channels);
-                %calculate feature every winLen secs
-%                 numWins = ceil(size(blockData,1)/(winLen*fs));
-                winDisp = dispPercent*winLen;
-                numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
+                %warning('off')
+                %Initilize variable to be used specifically in each proc.
+%                 parfeat = cell(parBlocks,1);
+%                 parnumNan = cell(parBlocks,1);
+                session = IEEGSession(datasetFN,username,pswd);
                 
-                tmpFeat = zeros(numWins,nChan);
-                tmpNan  = ones(numWins,nChan)*(winLen*fs);
-            else       %do normal feature extraction
-                blockNan = blockData; %copy block data with Nans 
-                blockData(isnan(blockData)) = 0; %NaN's turned to zero
-                nChan = numel(channels);
+                %create data variable
+                parData = session.data;
+        
+                %Get data
+                startBlockPt = 1+(blockLenSecs*(j-1)*fs)+ startSec*fs;
+                startBlockPt = startBlockPt + parOffset*(p-1);
+                endBlockPt = min(blockLenSecs*j*fs,numPoints)+ startSec*fs;
+                endBlockPt = endBlockPt + parOffset*(p-1);
                 
+                err = 0;
+                %try to get data ten times this is to prevent timeouts
+                while err < 10
+                    try    
+                        blockData = parData.getvalues(startBlockPt:endBlockPt,channels);
+                        break;
+                    catch
+                        err = err + 1    
+                    end
+                end
+
+                %%%%%DO a check to see if the entire block is Nan if this is
+                %%%%%true then skip this block. Ideally returning an indication
+                %%%%%that this row was skipped (return 0's) to speed up
+                %%%%%computation. 
+                if(sum(isnan(blockData),1) == blockLenSecs*fs) % all 0's
+                    nChan = numel(channels);
+                    %calculate feature every winLen secs
+                    winDisp = dispPercent*winLen;
+                    numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
+                    tmpFeat = zeros(numWins,nChan);
+                    tmpNan  = ones(numWins,nChan)*(winLen*fs);
+                else       %do normal feature extraction
+                    blockNan = blockData; %copy block data with Nans 
+                    blockData(isnan(blockData)) = 0; %NaN's turned to zero
+                    nChan = numel(channels);
+                    
                     %filter data using filtfilt
 %                     %filter data  (speed up by making a matrix operation???)
 %                     for chF = 1:nChan
 %                        blockData(:,chF) = filtfilt(Num,1,blockData(:,chF)); 
 %                     end
 
-                %filter data using filter along columns
-                blockData = filter(Num,1,blockData);
+%                     %filter data using filter along columns
+                    blockData = filter(Num,1,blockData);
                     
-                %calculate feature every winLen secs
-                winDisp = dispPercent*winLen;
-                numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
-                
-                tmpFeat = cell(numWins);
-                tmpNan  = cell(numWins);
-                for n = 1:numWins
+                    %calculate feature every winLen secs
+                    winDisp = dispPercent*winLen;
+                    numWins = CalcNumWins(size(blockData,1),fs,winLen,winDisp);
+                    tmpFeat = zeros(numWins,nChan);
+                    tmpNan  = zeros(numWins,nChan);
+                    for n = 1:numWins
                         %off set included
                         startWinPt = round(1+(winDisp*(n-1)*fs));
                         endWinPt = round(min(winDisp*n*fs,size(blockData,1)));
-                        %Since all Nan set to 0 look for 0's instead of NaN
-                        tmpNan{n} = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
-                        
+                        %Find number of Nan
+                        tmpNan(n,:) = sum(isnan(blockNan(startWinPt:endWinPt,:)),1);
+
                         idxN = find(isnan(blockNan(startWinPt:endWinPt,1)) == 0);  %find all indices without Nan
                         x = [0; cumsum(diff(idxN)~=1)];                 %find consecutive non Nan values
+
                         
                         %check to see if there are any outages if there are
                         %not then proceed normally else do computation to
@@ -200,31 +214,29 @@ if parFlag    %if flag is set do processing in parallel
                         if max(x) == 0
                             switch feature
                                 case 'power'
-                                    tmptmp = zeros(1,nChan);
                                     for c = 1:nChan
                                         y = blockData(startWinPt:endWinPt,c);
                                         [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                        tmptmp(c) = bandpower(PSD,F,varargin{1},'psd');
-                                        tmpFeat{n} = tmptmp;
+                                        tmpFeat(n,c) = bandpower(PSD,F,varargin{1},'psd');
                                     end
                                 case 'dcn'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat{n} = DCNCalc(y);
+                                    tmpFeat(n,1) = DCNCalc(y);
                                 case 'll'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat{n} = LLFn(y);
+                                    tmpFeat(n,:) = LLFn(y);
                                 case 'amp'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat{n} = AmpFn(y);
+                                    tmpFeat(n,:) = AmpFn(y);
                                 case 'area'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat{n} = AreaFn(y);                                    
+                                    tmpFeat(n,:) = AreaFn(y);
                                 case 'energy'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat{n} = EnergyFn(y);
+                                    tmpFeat(n,:) = EnergyFn(y);
                                 case 'nlenergy'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat{n} = EnergyNl(y);
+                                    tmpFeat(n,:) = EnergyNl(y);
                             end
                         else
                             %number of consecutive outs
@@ -241,30 +253,27 @@ if parFlag    %if flag is set do processing in parallel
                             startT = idxN(idxStart);   %values are not really time
                             endT = idxN(idxEnd);
                             outLen = (endT - startT);
-
                             switch feature
                                 case 'power'
-                                    tmptmp = zeros(1,nChan);
                                     for c = 1:nChan
                                         y = blockData(startWinPt:endWinPt,c);
                                         [PSD,F]  = pwelch(y,ones(length(y),1),0,length(y),fs,'psd');
-                                        tmptmp(c) = bandpower(PSD,F,varargin{1},'psd');
-                                        tmpFeat{n} = tmptmp;
+                                        tmpFeat(n,c) = bandpower(PSD,F,varargin{1},'psd');
                                     end
                                 case 'dcn'
                                     y = blockData(startWinPt:endWinPt,1:nChan);
-                                    tmpFeat{n} = DCNCalc(y);
+                                    tmpFeat(n,1) = DCNCalc(y);
                                 case 'll'
                                     k = 1;
                                     winFeat = [];
                                     for goodWin = 1:numOut
-                                        if outLen(goodWin) > 0
+                                        if outLen(goodWin) > 5
                                         tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
                                         winFeat(k,:) = LLFn(tmp);
                                         k = k + 1;
                                         end
                                     end
-                                    tmpFeat{n} = mean(winFeat,1);
+                                    tmpFeat(n,:) = mean(winFeat,1);
                                 case 'amp'
                                     k = 1;
                                     winFeat = [];
@@ -275,7 +284,7 @@ if parFlag    %if flag is set do processing in parallel
                                         k = k + 1;
                                         end
                                     end
-                                    tmpFeat{n} = mean(winFeat,1);
+                                    tmpFeat(n,:) = mean(winFeat,1);
                                 case 'area'
                                     k = 1;
                                     winFeat = [];
@@ -286,18 +295,18 @@ if parFlag    %if flag is set do processing in parallel
                                         k = k + 1;
                                         end
                                     end
-                                    tmpFeat{n} = mean(winFeat,1);                                    
+                                    tmpFeat(n,:) = mean(winFeat,1);                                    
                                 case 'energy'
                                     k = 1;
                                     winFeat = [];
                                     for goodWin = 1:numOut
-                                        if outLen(goodWin) > 0
+                                        if outLen(goodWin) > 5
                                         tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
                                         winFeat(k,:) = EnergyFn(tmp);
                                         k = k + 1;
                                         end
                                     end
-                                    tmpFeat{n} = mean(winFeat,1);
+                                    tmpFeat(n,:) = mean(winFeat,1);
                                 case 'nlenergy'
                                     k = 1;
                                     winFeat = [];
@@ -308,25 +317,25 @@ if parFlag    %if flag is set do processing in parallel
                                         k = k + 1;
                                         end
                                     end
-                                    tmpFeat{n} = mean(winFeat,1);
+                                    tmpFeat(n,:) = mean(winFeat,1);
                             end
                         end
+                    end
+
                 end
-                tmpFeat = cell2mat(tmpFeat);
-                
-            end
-            
-            feat{j} = tmpFeat;
-            numNan{j} = tmpNan;
-            percentDone = 100 * j / numBlocks;
-            msg = sprintf('Percent done: %3.1f',percentDone); %Don't forget this semicolon
-            fprintf([reverseStr, msg])
-            reverseStr = repmat(sprintf('\b'), 1, length(msg));
+
+                feat{j} = tmpFeat;
+                numNan{j} = tmpNan;
+                %This doesn't really work for par processes
+%                 percentDone = 100 * j / numBlocks;
+%                 msg = sprintf('Percent done: %3.1f',percentDone); %Don't forget this semicolon
+%                 fprintf([reverseStr, msg])
+%                 reverseStr = repmat(sprintf('\b'), 1, length(msg));
         end
     
     fprintf('\n');
-    feat = cell2mat(featTot);
-    numNan = cell2mat(numNanTot);
+    feat = cell2mat(feat);
+    numNan = cell2mat(numNan);
     if strcmp(feature,'dcn')
         feat = feat(:,1);
     end

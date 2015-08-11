@@ -12,7 +12,7 @@ addpath(genpath('Wilson_NVanalysis'))
 % Define algorithm specifics 
 usernm = 'jaredwil';
 pswdBin = 'jar_ieeglogin.bin';
-trPct = 0.7;
+trPct = 0.1;
 winLen = 5;
 winDisp = 2.5;
 szHorizon = 2; %hours

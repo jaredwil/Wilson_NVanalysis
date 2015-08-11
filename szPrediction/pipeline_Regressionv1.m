@@ -19,9 +19,9 @@ addpath(genpath('Wilson_NVanalysis'))
 usernm = 'jaredwil'; 
 pswdBin = 'jar_ieeglogin.bin';
 trPct = 0.7;
-winLen = 5;
-winDisp = 2.5;
-szHorizon = 1/10; %hours
+winLen = 20;
+winDisp = 20;
+szHorizon = 1; %hours
 
 % winLen = 30;
 % winDisp = 30;
@@ -35,7 +35,7 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 
 %%
 %begin function
-%loop through all pts
+%loop through all pts0
 i = 12;  %%%%%TEMPORARY for debug
 
 %Get train features and training labels (lables -> minutes to sz)
@@ -62,7 +62,7 @@ trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats), stdFeats);
 dzT = tINFO.DF; 
 tInt = tINFO.Intercept;
 % xAlpha = xINFO.Alpha;
-tInt2 = repmat(tInt, size(testFeats,1),1);
+tInt2 = repmat(tInt, size(trainFeats,1),1);
 
 
 %%
@@ -71,6 +71,12 @@ tInt2 = repmat(tInt, size(testFeats,1),1);
 
 %get the training features and labels
 [testFeats, testLabels] = szPred_test(pt{i}, usernm, pswdBin, trPct, winLen, winDisp, szHorizon);
+
+%remove the interictal data so model is only trained on szhorizon for
+%reression
+testFeats(testLabels > szHorizon*60*60,:) = [];
+testLabels(testLabels > szHorizon*60*60,:) = [];
+
 %normalize test feats
 testFeats = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats), stdFeats);
 
