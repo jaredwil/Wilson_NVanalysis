@@ -42,13 +42,24 @@ datasetFN = ptSession.data.snapName;
 username = 'jaredwil'; % <<< These values should also be inputs somehow???
 pswd = 'jar_ieeglogin.bin';% <<  ^^
 %This finds the number of features extracted from the window
-numFeats = size(FeatExt(ptSession.data.getvalues(1:200,1:numCh),fs),2);
+
+%check to see if there are any Nans if there are return all zeros
+
+tstClip = ptSession.data.getvalues(1:200,1:numCh);
+tstClip(isnan(tstClip)) = 0; %NaN's turned to zero
+stClip = 1;
+while(sum(sum(isnan(tstClip),1)) > 400 && sum(any(tstClip)) == 0) 
+    tstClip = ptSession.data.getvalues((stClip*200+1):(stClip+1)*200,1:numCh);
+    stClip = stClip + 1;
+end
+
+numFeats = size(FeatExt(tstClip,fs),2);
 %%
 %Begin Function
 bufferT = 30*60; %buffer time (seconds) after sz considered interictal currently set to 30mins
 
 predIdx = cell(length(szStartT),1);  %array containing all Idx to be ignored when finding inter-ictal data for training
-extFeats = cell(numSz);
+extFeats = cell(numSz,1);
 
 p = gcp('nocreate'); % If no pool, do not create new one.
 if isempty(p)        %if not p will contain all info about current pool;
@@ -72,11 +83,12 @@ if(poolsize == 0)
 end
 
 szEndT = [0; szEndT];
-% parfor_progress(numSz);
+parfor_progress(numSz);
 
-for sz = 1:numSz
-%     warning('off');
-%     parSession = IEEGSession(datasetFN,username,pswd); %start session on worker
+warning('off');
+parfor sz = 1:numSz
+    warning('off');
+    parSession = IEEGSession(datasetFN,username,pswd); %start session on worker
     
     horizStart = szStartT(sz) - szHorizon*3600; %compute the horizon start time1
 
@@ -88,68 +100,74 @@ for sz = 1:numSz
     if(horizStart < endBufferT)
         horizStart = endBufferT;       
     end 
-            
-    %Get DA DATA! 
-    err = 0;
-    %try to get data 4 times this is to prevent timeouts it request spends
-    %to much time in que
-    while err < 4
-        try    
-            dataPreSz = ptSession.data.getvalues((horizStart*fs):(szStartT(sz)*fs),1:numCh);
-            break;
-        catch
-            err = err + 1;    
-        end
-    end
     
-%     predIdx{sz,1} = horizStart*fs;    %Keep track of start of sz pred horizon
-%     predIdx{sz,2} = (szEndT(sz)+bufferT)*fs; %record buffer time as 30 mins after end of sz
-    
-    predIdx{sz} = [ horizStart*fs (szEndT(sz)+bufferT)*fs ];
-    
-    dataPreSzNan = dataPreSz; %copy block data with Nans 
-    dataPreSz(isnan(dataPreSz)) = 0; %NaN's turned to zero
-    
-    %filter the data
-    dataPreSz = filtfilt(Num,1,dataPreSz);
-
-    numWins = CalcNumWins(size(dataPreSz,1), fs, winLen, winDisp);
-    
-%     feats = zeros(numWins,numFeats);
-    feats = cell(numWins,1);
-    parfor n = 1:numWins
-        %off set included
-        startWinPt = round(1+(winDisp*(n-1)*fs));
-        endWinPt = round(min([winDisp*n*fs,size(dataPreSz,1)]));               
-        y = dataPreSz(startWinPt:endWinPt,:);
-        
-        numNan = sum(isnan(y),1); 
-
-        %only compute the feature vector for windows that have zero
-        %Nans
-        if(sum(numNan) < 400 && sum(any(y)) ~= 0) 
-            %compute feature vector for current window
-%             tmpFeats(n,:) = FeatExt(y,fs);
-%             N = N + 1; %increase tracked number of valid windows
-            feats{n} = FeatExt(y,fs);
-        else 
-%             tmpFeats(n,:) = zeros(1,numFeats);
-            feats{n} = zeros(1,numFeats);
-
+    if(horizStart > szStartT(sz))
+        %skip this sz
+        %might need to fill this sell with something?
+        parfor_progress;
+    else
+        %Get DA DATA! 
+        err = 0;
+        %try to get data 4 times this is to prevent timeouts it request spends
+        %to much time in que
+        while err < 4
+            try    
+                dataPreSz = parSession.data.getvalues((horizStart*fs):(szStartT(sz)*fs),1:numCh);
+                break;
+            catch
+                err = err + 1;    
+            end
         end
 
-    end
-    
-    feats = cell2mat(feats);
+    %     predIdx{sz,1} = horizStart*fs;    %Keep track of start of sz pred horizon
+    %     predIdx{sz,2} = (szEndT(sz)+bufferT)*fs; %record buffer time as 30 mins after end of sz
 
-    labelTime = (szStartT(sz)-horizStart-winLen):(-winDisp):0;
-    
-    %create cell array to return feature vector and lables
-    extFeats{sz} = [labelTime' feats];
-    disp(['Progress: ' num2str(sz) '/' num2str(numSz)])
-    
+        predIdx{sz} = [ horizStart*fs (szEndT(sz)+bufferT)*fs ];
+
+        dataPreSzNan = dataPreSz; %copy block data with Nans 
+        dataPreSz(isnan(dataPreSz)) = 0; %NaN's turned to zero
+
+        %filter the data
+        dataPreSz = filtfilt(Num,1,dataPreSz);
+
+        numWins = CalcNumWins(size(dataPreSz,1), fs, winLen, winDisp);
+
+        feats = zeros(numWins,numFeats);
+    %     feats = cell(numWins,1);
+        for n = 1:numWins
+            %off set included
+            startWinPt = round(1+(winDisp*(n-1)*fs));
+            endWinPt = round(min([winDisp*n*fs,size(dataPreSz,1)]));               
+            y = dataPreSz(startWinPt:endWinPt,:);
+
+            numNan = sum(isnan(y),1); 
+
+            %only compute the feature vector for windows that have zero
+            %Nans
+            if(sum(numNan) < 400 && sum(any(y)) ~= 0) 
+                %compute feature vector for current window
+                feats(n,:) = FeatExt(y,fs);
+    %             feats{n} = FeatExt(y,fs);
+            else 
+                feats(n,:) = zeros(1,numFeats);
+    %             feats{n} = zeros(1,numFeats);
+
+            end
+
+        end
+
+    %     feats = cell2mat(feats);
+
+        labelTime = (szStartT(sz)-horizStart-winLen):(-winDisp):0;
+
+        %create cell array to return feature vector and lables
+        extFeats{sz} = [labelTime' feats];
+    %     disp(['Progress: ' num2str(sz) '/' num2str(numSz)])
+        parfor_progress;
+    end
 end
-
+parfor_progress(0);
+disp(['Progress: ' num2str(numSz) '/' num2str(numSz)])
 %convert to matrix
 extFeats = cell2mat(extFeats);
 predIdx  = cell2mat(predIdx);

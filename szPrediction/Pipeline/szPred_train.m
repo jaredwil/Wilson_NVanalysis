@@ -35,7 +35,7 @@ fs = session.data.sampleRate;               %Find sampling Rate
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  %THIS PART IS TEMPORARY TO ABORT IF NO ANNOTATION OR IF TO MANY
-if(isempty(startT) || length(startT) > 80)
+if(isempty(startT)) % || length(startT) > 80)
     trainFeats = [];
     trainLabels = [];
     return;
@@ -61,7 +61,8 @@ trainET = endT(1:numTr);
 %hours in the training data.
 
 Nlim = size(train,1);
-[trainInt] = InterictRand_train( session, predIdx, winLen, winDisp, Nlim);
+% [trainInt] = InterictRand_train( session, predIdx, winLen, winDisp, Nlim);
+[trainInt] = train_interPar( session, predIdx, winLen, winDisp, Nlim);
 
 %isolate time lables and training feats
 szhorzTrain = train(:,2:end);

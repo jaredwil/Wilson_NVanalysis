@@ -48,7 +48,8 @@ testET = endT(numTr+1:end);
 [test, testpredIdx] = getSzFeats(session, testST, testET, szHorizon, winLen, winDisp);
 %get interictal testing data
 Nlim = size(test,1);
-[testInt] = Interict_test(session, testpredIdx, winLen, winDisp, Nlim);
+% [testInt] = Interict_test(session, testpredIdx, winLen, winDisp, Nlim);
+[testInt] = test_interPar(session, testpredIdx, winLen, winDisp, Nlim);
 
 %create a single test matrix
 szhorzTest = test(:,2:end);

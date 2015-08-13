@@ -35,23 +35,8 @@ for i = 1%:length(pt)
     labelTest1 = 'spdTest1';
     labelTest2 = 'spdTest2';
 
-%         [area, numNan{i}] = calcFeature_NV(session.data, ch ,'area', min, 1,label,[0 60*day], hour,  1);
+     [area, numNan{i}] = calcFeature_NV(session.data, ch ,'area', min, 1,label,[0 60*day], hour,  1);
 
-    tic
-    [area, numNan{i}] = calcFeature_NV(session.data, ch ,'area', min, 1,labelTest2,[0 1*day], hour,  1);
-    time1 = toc;
-    
-    tic
-    [area, numNan{i}] = calcFeature_NV(session.data, ch ,'area', min, 1,labelTest2,[0 1*day], hour,  0);
-    time3 = toc;
-    
-    
-    tic
-    [area, numNan{i}] = calcFeature_NV_spdup(session.data, ch ,'area', min, 1,labelTest2,[0 1*day], hour,  1);
-    time2 = toc;
-    
-    
-    
 %    [energy{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'energy', min, labelEnergy,[0 60*day], hour,  1);
 
 end
