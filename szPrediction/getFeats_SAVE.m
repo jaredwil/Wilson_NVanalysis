@@ -32,7 +32,7 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 %%
 %begin function
 %loop through all pts.
-for i = 1:numel(pt);  %%%%%TEMPORARY for debug
+for i = 11%:numel(pt);  %%%%%TEMPORARY for debug
 
 %Get train features and training labels (lables -> minutes to sz)
 [trainFeats, trainLabels ] = szPred_train(pt{i}, usernm, pswdBin, trPct, winLen, winDisp, szHorizon);
@@ -51,9 +51,8 @@ stdFeats = std(trainFeats,[],1);
 %get the training features and labels
 [testFeats, testLabels] = szPred_test(pt{i}, usernm, pswdBin, trPct, winLen, winDisp, szHorizon);
 
-
 data = struct('train',[trainLabels trainFeats],'mean',avgFeats,'std',stdFeats,'test',[testLabels testFeats]);
 saveLabel = [pt{i} '_szPred_30secFeats.mat'];
-save(saveLabel,'data');
+save(saveLabel,'data','-v7.3');
 
 end

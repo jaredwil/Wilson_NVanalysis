@@ -1,5 +1,6 @@
-%GET ALL DEM FEATURES!!!!!
-
+%GET ALL DEM FEATURES AND SAVE EM!!!!!
+%Jared Wilson
+%8/12/15
 
 %%
 % Start
@@ -30,12 +31,13 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 
 %%
 %begin function
-%loop through all pts0
-for i = 1:numel(pt);  %%%%%TEMPORARY for debug
+%loop through all pts.
+for i = 7:numel(pt);  %%%%%TEMPORARY for debug
 
 %Get train features and training labels (lables -> minutes to sz)
 [trainFeats, trainLabels ] = szPred_train(pt{i}, usernm, pswdBin, trPct, winLen, winDisp, szHorizon);
 
+%This means there are no labels so skip this pt.
 if(isempty(trainFeats))
     continue;
 end
@@ -51,7 +53,11 @@ stdFeats = std(trainFeats,[],1);
 
 
 data = struct('train',[trainLabels trainFeats],'mean',avgFeats,'std',stdFeats,'test',[testLabels testFeats]);
+%for HUGE train and test sets try this
+limitTr = 10000;
+limitTest = limitTr*
+data = struct('train',[trainLabels(1:10000 trainFeats],'mean',avgFeats,'std',stdFeats,'test',[testLabels testFeats]);
 saveLabel = [pt{i} '_szPred_30secFeats.mat'];
-save(saveLabel,'data');
+save(saveLabel,'data','-v7.3');
 
 end

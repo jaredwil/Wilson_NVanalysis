@@ -87,8 +87,8 @@ end
 
 % for j = 1:numBlocks
 j = 0;
-while(j < numBlocks)
-    totN = cell(poolsize,1);
+while(j < numBlocks-poolsize)
+    totN = cell(poolsize,1); 
     parfor p = 1:poolsize   %use all available workers in the pool    
         %establish par session on worker
         Npar = 0;
