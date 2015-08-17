@@ -1,6 +1,8 @@
 %Jared D. Wilson
 %7/27/2015
 %Regression pipeline Test -- Features Pre-Extracted to speed up testing
+% ALL Features & Labels are loaded from .mat file contained on either
+% dropbox or external hardrive on Laplace
 %   This script is designed to creat a lasso regression model that will
 %   serve two purposes. 
 %   1.) Test regression for a seizure prediction problem
@@ -13,7 +15,7 @@ clear all; close all; clc;
 warning('off')
 addpath(genpath('ieeg-matlab-1.8.3'))
 addpath(genpath('Wilson_NVanalysis'))
-addpath(genpath('H:\HumanNV\szPred_feats'))
+addpath(genpath('H:\HumanNV\szPred_feats'))  %this is where .mat file are contained
 
 %%
 % Define algorithm specifics 
@@ -29,6 +31,38 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
     'NVC1001_25_005' 'NVC1001_24_001' 'NVC1001_24_002' 'NVC1001_24_004' ...
     'NVC1001_24_005' 'NVC1001_23_002' 'NVC1001_23_003' 'NVC1001_23_004' ...
     'NVC1001_23_005' 'NVC1001_23_006' 'NVC1001_23_007'};
+
+%%%%%%%%%%%%%%%%%%%%%% start par pool%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Establish parpool
+p = gcp('nocreate'); % If no pool, do not create new one.
+if isempty(p)        %if not p will contain all info about current pool;
+    poolsize = 0;
+else
+    poolsize = p.NumWorkers;
+end
+%initialize paralell pool if available
+if(poolsize == 0)
+
+    myCluster = parcluster('local');
+    numWork = myCluster.NumWorkers;
+
+    if(numWork < 2)  %processing is done on a laptop so don't do it in parallel
+        parpool('local',1)
+        p = gcp('nocreate'); % If no pool, do not create new one.
+        poolsize = p.NumWorkers;
+    elseif(numWork > 8) %limit the number of workers to 6
+        parpool('local',8)
+        p = gcp('nocreate'); % If no pool, do not create new one.
+        poolsize = p.NumWorkers;
+    else  %set up a parallel pool with max number of workers available between 2 and 6
+        parpool(myCluster)
+        p = gcp('nocreate'); % If no pool, do not create new one.
+        poolsize = p.NumWorkers;
+
+    end
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 %%
 %begin function
@@ -68,17 +102,18 @@ avgFeats = mean(trainFeats,1);
 stdFeats = std(trainFeats,[],1);
 trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats), stdFeats);
 
-
 %%
 % Train Lasso Regression
 disp(['Training Lasso Model on Patient: ' pt{i}])
-[fLasso, tINFO] = lasso(trainFeats, trainLabels);
+opts = statset('UseParallel',true);  %Do dis shit in parallel!!!  use number of availble workers for CV
+[fLasso, tINFO] = lasso(trainFeats, trainLabels,'CV',5,'Options',opts);
+%BOOM!!!
 disp(['DONE Training Lasso Model on Patient: ' pt{i}])
 
 dzT = tINFO.DF; 
 tInt = tINFO.Intercept;
 % xAlpha = xINFO.Alpha;
-tInt2 = repmat(tInt, size(trainFeats,1),1);
+tInt2 = repmat(tInt, size(testFeats,1),1);
 
 
 %%
@@ -92,7 +127,7 @@ testLabels(testLabels > szHorizon*60*60,:) = [];
 %normalize test feats
 testFeats = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats), stdFeats);
 
-utLasso = testFeats*fLasso; + tInt2;
+utLasso = testFeats*fLasso + tInt2;
 
 tTest = repmat(testLabels,1,100);
 
@@ -107,11 +142,22 @@ ylabel('Resulting Test Correlation (%)')
 grid on;
 name = [pt{i} '_lassoRes'];
 % saveas(h,name,'jpg')
+
+figure(7)
+lassoPlot(b,fitinfo,'PlotType','CV');
+% Use a log scale for MSE to see small MSE values better
+% set(gca,'YScale','log');
+
+figure(8)
+plot(utLasso(:,tLasso_coor == max(tLasso_coor)));
+hold on;
+plot(testLabels);
+
 % 
-% bestLasso = fLasso(:,tLasso_coor == max(tLasso_coor));
-% bestInt = tInt(tLasso_coor == max(tLasso_coor)); 
-% numFeats = dzT(tLasso_coor == max(tLasso_coor)); 
-% 
+bestLasso = fLasso(:,tLasso_coor == max(tLasso_coor));
+bestInt = tInt(tLasso_coor == max(tLasso_coor)); 
+numFeats = dzT(tLasso_coor == max(tLasso_coor)); 
+
 % lassoRes = struct('coef',bestLasso,'int',bestInt,'numFeats',numFeats);
 % saveLabel = [pt{i} '_bestLasso.mat'];
 % save(saveLabel,'lassoRes','-v7.3');
