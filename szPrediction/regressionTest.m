@@ -93,8 +93,8 @@ testFeats = test(:,2:end);
 
 %remove the interictal data so model is only trained on szhorizon for
 %reression
-trainFeats(trainLabels > szHorizon*60*60,:) = [];
-trainLabels(trainLabels > szHorizon*60*60,:) = [];
+% trainFeats(trainLabels > szHorizon*60*60,:) = [];
+% trainLabels(trainLabels > szHorizon*60*60,:) = [];
 
 
 %normalize features
@@ -113,7 +113,6 @@ disp(['DONE Training Lasso Model on Patient: ' pt{i}])
 dzT = tINFO.DF; 
 tInt = tINFO.Intercept;
 % xAlpha = xINFO.Alpha;
-tInt2 = repmat(tInt, size(testFeats,1),1);
 
 
 %%
@@ -123,6 +122,7 @@ tInt2 = repmat(tInt, size(testFeats,1),1);
 %reression... train on all test on only szHorizon...
 testFeats(testLabels > szHorizon*60*60,:) = [];
 testLabels(testLabels > szHorizon*60*60,:) = [];
+tInt2 = repmat(tInt, size(testFeats,1),1);
 
 %normalize test feats
 testFeats = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats), stdFeats);
@@ -134,29 +134,41 @@ tTest = repmat(testLabels,1,100);
 tLasso_coor = corr(tTest,utLasso);
 tLasso_coor = tLasso_coor(1,:);
 
+
+minIdx = tINFO.IndexMinMSE;
+seIdx  = tINFO.Index1SE;
+
+
 figure(6)
 title('Number of Non-Zero Features vs Resulting Correlation')
-h = plot(dzT,tLasso_coor*100,'o');
+h = plot(dzT,tLasso_coor*100,'r.');
 xlabel('Number of Non-Zero Feature Weights in Lasso Model')
 ylabel('Resulting Test Correlation (%)')
 grid on;
+hold on;
+h = plot(dzT(minIdx),tLasso_coor(minIdx)*100,'gs','LineWidth',4);
+h = vline(dzT(minIdx),'g:');
+h = plot(dzT(seIdx),tLasso_coor(seIdx)*100,'bs','LineWidth',4);
+h = vline(dzT(seIdx),'b:');
 name = [pt{i} '_lassoRes'];
 % saveas(h,name,'jpg')
 
-figure(7)
-lassoPlot(b,fitinfo,'PlotType','CV');
+
+lassoPlot(fLasso,tINFO,'PlotType','CV');
 % Use a log scale for MSE to see small MSE values better
 % set(gca,'YScale','log');
 
 figure(8)
-plot(utLasso(:,tLasso_coor == max(tLasso_coor)));
+% plot(utLasso(:,tLasso_coor == max(tLasso_coor)));
+% plot(utLasso(:,minIdx));
+plot(utLasso(:,seIdx));
 hold on;
 plot(testLabels);
 
 % 
-bestLasso = fLasso(:,tLasso_coor == max(tLasso_coor));
-bestInt = tInt(tLasso_coor == max(tLasso_coor)); 
-numFeats = dzT(tLasso_coor == max(tLasso_coor)); 
+% bestLasso = fLasso(:,tLasso_coor == max(tLasso_coor));
+% bestInt = tInt(tLasso_coor == max(tLasso_coor)); 
+% numFeats = dzT(tLasso_coor == max(tLasso_coor)); 
 
 % lassoRes = struct('coef',bestLasso,'int',bestInt,'numFeats',numFeats);
 % saveLabel = [pt{i} '_bestLasso.mat'];
