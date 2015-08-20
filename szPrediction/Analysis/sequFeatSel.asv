@@ -1,0 +1,92 @@
+%Feature selection of classification scheme utilizing sequential feature
+%selection
+%Jared D. Wilson
+%8/17/2015
+
+%%
+% Start
+% clear the workspace and console
+clear all; close all; clc;
+warning('off')
+addpath(genpath('ieeg-matlab-1.8.3'))
+addpath(genpath('Wilson_NVanalysis'))
+addpath(genpath('H:\HumanNV\szPred_feats'))
+
+%%
+% Define algorithm specifics 
+usernm = 'jaredwil'; 
+pswdBin = 'jar_ieeglogin.bin';
+trPct = 0.7;
+winLen = 30;
+winDisp = 30;
+szHorizon = 2; %hours
+
+% patients of interest on ieeg portal
+pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
+    'NVC1001_25_005' 'NVC1001_24_001' 'NVC1001_24_002' 'NVC1001_24_004' ...
+    'NVC1001_24_005' 'NVC1001_23_002' 'NVC1001_23_003' 'NVC1001_23_004' ...
+    'NVC1001_23_005' 'NVC1001_23_006' 'NVC1001_23_007'};
+model = cell(numel(pt),1);
+%%
+%begin function
+%loop through all pts0
+for i = 12 %numel(pt)  %%%%%TEMPORARY for debug
+
+    label = [pt{i} '_szPred_30secFeats.mat'];
+
+    try   
+        load(label);
+    catch
+        disp('This pt. does not have a save .mat to load from')
+        continue;
+
+    end
+
+    train   = data.train;
+    test    = data.test;
+    % avgFeats = data.mean;
+    % stdFeats = data.std;
+
+    %isolate labels and feats in training data
+    trainLabels = train(:,1);
+    trainFeats = train(:,2:end);
+    testLabels = test(:,1);
+    testFeats = test(:,2:end);
+
+    %normalize features
+    avgFeats = mean(trainFeats,1);
+    stdFeats = std(trainFeats,[],1);
+    trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats), stdFeats);
+
+    %SVM Labels
+    svmLabels = trainLabels;
+    svmLabels(svmLabels >= 0 & svmLabels < szHorizon*60*60) = 1; %preictal
+    svmLabels(svmLabels > szHorizon*60*60) = 0; %interictal
+
+    %%
+    %HERE IS WHERE YOU WOULD TRAIN YOUR MODEL
+    % Train SVM model
+    model{i} = svmtrain(svmLabels, trainFeats, '-t 0 -b 1 -c 1'); 
+
+    %%
+    %normalize test feats
+    testFeats = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats), stdFeats);
+
+    %SVM
+    svmTestLabels = testLabels;
+    svmTestLabels(svmTestLabels >= 0 & svmTestLabels < szHorizon*60*60) = 1; %preictal
+    svmTestLabels(svmTestLabels > szHorizon*60*60) = 0; %interictal
+
+    %now run sequentialfs 
+    opts = statset('display','iter','UseParallel',true);
+    fun = @(featTr,labTr,featTest,labTest)...
+        (sum(~strcmp(labTest,))
+    
+    [predLab{i}, accuracy{i}, prob_estimates] = svmpredict(svmTestLabels, testFeats, model{i}, '-b 1');
+
+    allFeats_test{i} = testFeats;
+    allLab_test{i} = testLabels;
+
+
+
+end

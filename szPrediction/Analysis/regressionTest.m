@@ -15,7 +15,8 @@ clear all; close all; clc;
 warning('off')
 addpath(genpath('ieeg-matlab-1.8.3'))
 addpath(genpath('Wilson_NVanalysis'))
-addpath(genpath('H:\jaredwil\szPred_feats'))  %this is where .mat file are contained
+% addpath(genpath('H:\jaredwil\szPred_feats'))  %this is where .mat file are contained on Laplace
+addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Lasso'))  %this is where .mat file are contained on local comp
 
 %%
 % Define algorithm specifics 
@@ -150,8 +151,8 @@ h = plot(dzT(minIdx),tLasso_coor(minIdx)*100,'gs','LineWidth',4);
 h = vline(dzT(minIdx),'g:');
 h = plot(dzT(seIdx),tLasso_coor(seIdx)*100,'bs','LineWidth',4);
 h = vline(dzT(seIdx),'b:');
-name = [pt{i} '_lassoRes'];
-saveas(h,name,'jpg')
+plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Lasso\Results\' pt{i} '_lassoRes'];
+saveas(h,plotName,'jpg')
 
 
 lassoPlot(fLasso,tINFO,'PlotType','CV');
@@ -176,7 +177,7 @@ numFeats = dzT(seIdx);
 
 
 lassoRes = struct('coef',bestLasso,'int',bestInt,'numFeats',numFeats);
-saveLabel = [pt{i} '_bestLasso.mat'];
+saveLabel = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Lasso\Results\' pt{i} '_bestLasso.mat'];
 save(saveLabel,'lassoRes','-v7.3');
 
 
