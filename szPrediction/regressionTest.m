@@ -15,7 +15,7 @@ clear all; close all; clc;
 warning('off')
 addpath(genpath('ieeg-matlab-1.8.3'))
 addpath(genpath('Wilson_NVanalysis'))
-addpath(genpath('H:\HumanNV\szPred_feats'))  %this is where .mat file are contained
+addpath(genpath('H:\jaredwil\szPred_feats'))  %this is where .mat file are contained
 
 %%
 % Define algorithm specifics 
@@ -151,7 +151,7 @@ h = vline(dzT(minIdx),'g:');
 h = plot(dzT(seIdx),tLasso_coor(seIdx)*100,'bs','LineWidth',4);
 h = vline(dzT(seIdx),'b:');
 name = [pt{i} '_lassoRes'];
-% saveas(h,name,'jpg')
+saveas(h,name,'jpg')
 
 
 lassoPlot(fLasso,tINFO,'PlotType','CV');
@@ -170,9 +170,14 @@ plot(testLabels);
 % bestInt = tInt(tLasso_coor == max(tLasso_coor)); 
 % numFeats = dzT(tLasso_coor == max(tLasso_coor)); 
 
-% lassoRes = struct('coef',bestLasso,'int',bestInt,'numFeats',numFeats);
-% saveLabel = [pt{i} '_bestLasso.mat'];
-% save(saveLabel,'lassoRes','-v7.3');
+bestLasso = fLasso(:,seIdx);
+bestInt = tInt(seIdx); 
+numFeats = dzT(seIdx); 
+
+
+lassoRes = struct('coef',bestLasso,'int',bestInt,'numFeats',numFeats);
+saveLabel = [pt{i} '_bestLasso.mat'];
+save(saveLabel,'lassoRes','-v7.3');
 
 
 end
