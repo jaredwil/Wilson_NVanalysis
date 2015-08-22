@@ -47,7 +47,7 @@ if(poolsize == 0)
     myCluster = parcluster('local');
     numWork = myCluster.NumWorkers;
 
-    if(numWork < 2)  %processing is done on a laptop so don't do it in parallel
+    if(numWork <= 2)  %processing is done on a laptop so don't do it in parallel
         parpool('local',1)
         p = gcp('nocreate'); % If no pool, do not create new one.
         poolsize = p.NumWorkers;
@@ -114,6 +114,56 @@ disp(['DONE Training Lasso Model on Patient: ' pt{i}])
 dzT = tINFO.DF; 
 tInt = tINFO.Intercept;
 % xAlpha = xINFO.Alpha;
+tInt2 = repmat(tInt, size(trainFeats,1),1);
+
+utLasso = trainFeats*fLasso + tInt2;
+
+tTrain = repmat(trainLabels,1,100);
+
+tLasso_coor = corr(tTrain,utLasso);
+tLasso_coor = tLasso_coor(1,:);
+
+minIdx = tINFO.IndexMinMSE;
+seIdx  = tINFO.Index1SE;
+
+figure(6)
+title('Number of Non-Zero Features vs Resulting Correlation')
+h = plot(dzT,tLasso_coor*100,'r.');
+xlabel('Number of Non-Zero Feature Weights in Lasso Model')
+ylabel('Resulting Test Correlation (%)')
+grid on;
+hold on;
+h = plot(dzT(minIdx),tLasso_coor(minIdx)*100,'gs','LineWidth',4);
+h = vline(dzT(minIdx),'g:');
+h = plot(dzT(seIdx),tLasso_coor(seIdx)*100,'bs','LineWidth',4);
+h = vline(dzT(seIdx),'b:');
+plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Lasso\Results\' pt{i} '_lassoRes'];
+saveas(h,plotNQWame,'jpg')
+
+lassoPlot(fLasso,tINFO,'PlotType','CV');
+% Use a log scale for MSE to see small MSE values better
+% set(gca,'YScale','log');
+
+figure(8)
+% plot(utLasso(:,tLasso_coor == max(tLasso_coor)));
+% plot(utLasso(:,minIdx));
+plot(utLasso(:,seIdx));
+hold on;
+plot(testLabels);
+
+
+bestLasso_corr = fLasso(:,tLasso_coor == max(tLasso_coor));
+bestInt_corr = tInt(tLasso_coor == max(tLasso_coor)); 
+numFeats_corr = dzT(tLasso_coor == max(tLasso_coor)); 
+
+bestLasso = fLasso(:,seIdx);
+bestInt = tInt(seIdx); 
+numFeats = dzT(seIdx); 
+
+
+lassoRes = struct('coef',bestLasso,'int',bestInt,'numFeats',numFeats);
+saveLabel = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Lasso\Results\' pt{i} '_bestLasso.mat'];
+save(saveLabel,'lassoRes','-v7.3');
 
 
 %%
@@ -128,57 +178,14 @@ tInt2 = repmat(tInt, size(testFeats,1),1);
 %normalize test feats
 testFeats = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats), stdFeats);
 
-utLasso = testFeats*fLasso + tInt2;
+u = testFeats*fLasso(:,seIdx) + tInt2(seIdx);
 
-tTest = repmat(testLabels,1,100);
-
-tLasso_coor = corr(tTest,utLasso);
-tLasso_coor = tLasso_coor(1,:);
-
-
-minIdx = tINFO.IndexMinMSE;
-seIdx  = tINFO.Index1SE;
-
-
-figure(6)
-title('Number of Non-Zero Features vs Resulting Correlation')
-h = plot(dzT,tLasso_coor*100,'r.');
-xlabel('Number of Non-Zero Feature Weights in Lasso Model')
-ylabel('Resulting Test Correlation (%)')
-grid on;
-hold on;
-h = plot(dzT(minIdx),tLasso_coor(minIdx)*100,'gs','LineWidth',4);
-h = vline(dzT(minIdx),'g:');
-h = plot(dzT(seIdx),tLasso_coor(seIdx)*100,'bs','LineWidth',4);
-h = vline(dzT(seIdx),'b:');
-plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Lasso\Results\' pt{i} '_lassoRes'];
-saveas(h,plotName,'jpg')
-
-
-lassoPlot(fLasso,tINFO,'PlotType','CV');
-% Use a log scale for MSE to see small MSE values better
-% set(gca,'YScale','log');
-
-figure(8)
+%test Results
+figure(9)
 % plot(utLasso(:,tLasso_coor == max(tLasso_coor)));
 % plot(utLasso(:,minIdx));
-plot(utLasso(:,seIdx));
+plot(u);
 hold on;
 plot(testLabels);
-
-% 
-% bestLasso = fLasso(:,tLasso_coor == max(tLasso_coor));
-% bestInt = tInt(tLasso_coor == max(tLasso_coor)); 
-% numFeats = dzT(tLasso_coor == max(tLasso_coor)); 
-
-bestLasso = fLasso(:,seIdx);
-bestInt = tInt(seIdx); 
-numFeats = dzT(seIdx); 
-
-
-lassoRes = struct('coef',bestLasso,'int',bestInt,'numFeats',numFeats);
-saveLabel = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Lasso\Results\' pt{i} '_bestLasso.mat'];
-save(saveLabel,'lassoRes','-v7.3');
-
 
 end
