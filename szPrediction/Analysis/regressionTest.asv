@@ -7,10 +7,6 @@
 %   serve two purposes. 
 %   1.) Test regression for a seizure prediction problem
 %   2.) Feature Selection
-%
-%NOTE: This script trains only on defined preictal data (2 hours before sz
-%start time), Interictal features are not contained in script
-%NVC...5minFeats but are contained int NVC...30secFeats.
 
 %%
 % Start
@@ -39,33 +35,33 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 
 %%%%%%%%%%%%%%%%%%%%%% start par pool%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Establish parpool
-% p = gcp('nocreate'); % If no pool, do not create new one.
-% if isempty(p)        %if not p will contain all info about current pool;
-%     poolsize = 0;
-% else
-%     poolsize = p.NumWorkers;
-% end
-% %initialize paralell pool if available
-% if(poolsize == 0)
-% 
-%     myCluster = parcluster('local');
-%     numWork = myCluster.NumWorkers;
-% 
-%     if(numWork <= 2)  %processing is done on a laptop so don't do it in parallel
-%         parpool('local',1)
-%         p = gcp('nocreate'); % If no pool, do not create new one.
-%         poolsize = p.NumWorkers;
-%     elseif(numWork > 6) %limit the number of workers to 6
-%         parpool('local',6)
-%         p = gcp('nocreate'); % If no pool, do not create new one.
-%         poolsize = p.NumWorkers;
-%     else  %set up a parallel pool with max number of workers available between 2 and 6
-%         parpool(myCluster)
-%         p = gcp('nocreate'); % If no pool, do not create new one.
-%         poolsize = p.NumWorkers;
-% 
-%     end
-% end
+p = gcp('nocreate'); % If no pool, do not create new one.
+if isempty(p)        %if not p will contain all info about current pool;
+    poolsize = 0;
+else
+    poolsize = p.NumWorkers;
+end
+%initialize paralell pool if available
+if(poolsize == 0)
+
+    myCluster = parcluster('local');
+    numWork = myCluster.NumWorkers;
+
+    if(numWork <= 2)  %processing is done on a laptop so don't do it in parallel
+        parpool('local',1)
+        p = gcp('nocreate'); % If no pool, do not create new one.
+        poolsize = p.NumWorkers;
+    elseif(numWork > 10) %limit the number of workers to 6
+        parpool('local',10)
+        p = gcp('nocreate'); % If no pool, do not create new one.
+        poolsize = p.NumWorkers;
+    else  %set up a parallel pool with max number of workers available between 2 and 6
+        parpool(myCluster)
+        p = gcp('nocreate'); % If no pool, do not create new one.
+        poolsize = p.NumWorkers;
+
+    end
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 lassoTime = zeros(1,numel(pt));
@@ -77,7 +73,7 @@ close all;
 clear ('h','h1','h2');
     
     
-label = [pt{i} '_szPred_5minFeats.mat'];
+label = [pt{i} '_szPred_30secFeats.mat'];
 
 try   
     load(label);
@@ -98,21 +94,28 @@ trainFeats = train(:,2:end);
 testLabels = test(:,1);
 testFeats = test(:,2:end);
 
+
+%remove the interictal data so model is only trained on szhorizon for
+%reression
+% trainFeats(trainLabels > szHorizon*60*60,:) = [];
+% trainLabels(trainLabels > szHorizon*60*60,:) = [];
+
+
 %normalize features
 avgFeats = mean(trainFeats,1);
 stdFeats = std(trainFeats,[],1);
 trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats), stdFeats);
 
 %%
-% Train Lasso Regression UseParallel
+% Train Lasso Regression
 tic;
-disp(['Training Lasso Model on Patient: ' pt{i} ' (NO INTERICTAL)'])
+disp(['Training Lasso Model on Patient: ' pt{i}])
 opts = statset('UseParallel',true);  %Do dis shit in parallel!!!  use number of availble workers for CV
-[fLasso, tINFO] = lasso(trainFeats, trainLabels,'CV',5,'Options',opts);
-% [fLasso, tINFO] = lasso(trainFeats, trainLabels,'CV',2);
+[fLasso, tINFO] = lasso(trainFeats, trainLabels,'CV',10,'Options',opts);
 %BOOM!!!
 disp(['DONE Training Lasso Model on Patient: ' pt{i}])
 lassoTime(i) = toc;
+
 
 dzT = tINFO.DF; 
 tInt = tINFO.Intercept;
@@ -174,23 +177,25 @@ save(saveLabel,'lassoRes','-v7.3');
 %%
 %%%%%%%%%%%%%%%%%%%%%%%  TEST   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%remove the interictal data so model is only trained on szhorizon for
+%reression... train on all test on only szHorizon...
+testFeats(testLabels > szHorizon*60*60,:) = [];
+testLabels(testLabels > szHorizon*60*60,:) = [];
 tInt2 = repmat(tInt, size(testFeats,1),1);
 
 %normalize test feats
 testFeats = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats), stdFeats);
 
 uSE = testFeats*fLasso(:,seIdx) + tInt2(seIdx);
-uMin = testFeats*fLasso(:,minIdx) + tInt2(minIdx);
-uCorr = testFeats*fLasso(:,corrIdx) + tInt2(corrIdx);
+uMin = testFeats*fLasso(:,seIdx) + tInt2(seIdx);
+uCorr = testFeats*fLasso(:,seIdx) + tInt2(seIdx);
 
 %TEST/PLOT RESULTS!
 timeMin = linspace(0,(size(testLabels,1)-1)*30,size(testLabels,1))/60;
 
 figure(9)
-h3 = plot(timeMin,uSE/60);
+h3 = plot(timeMin,u/60);
 hold on;
-h3 = plot(timeMin,uMin/60);
-h3 = plot(timeMin,uCorr/60);
 h3 = plot(timeMin,testLabels/60);
 hline(30,'r:');
 ylabel('Time to Sz (min)')

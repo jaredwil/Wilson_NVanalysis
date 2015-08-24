@@ -15,8 +15,8 @@ addpath(genpath('Wilson_NVanalysis'))
 usernm = 'jaredwil'; 
 pswdBin = 'jar_ieeglogin.bin';
 trPct = 0.7;
-winLen = 30;
-winDisp = 30;
+winLen = 60*5;
+winDisp = 60*5;
 szHorizon = 2; %hours
 
 % winLen = 30;
@@ -32,10 +32,10 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 %%
 %begin function
 %loop through all pts.
-for i = 11%:numel(pt);  %%%%%TEMPORARY for debug
+for i = 3:numel(pt);  %%%%%TEMPORARY for debug
 
 %Get train features and training labels (lables -> minutes to sz)
-[trainFeats, trainLabels ] = szPred_train(pt{i}, usernm, pswdBin, trPct, winLen, winDisp, szHorizon);
+[trainFeats, trainLabels ] = szPred_trainNOint(pt{i}, usernm, pswdBin, trPct, winLen, winDisp, szHorizon);
 
 %This means there are no labels so skip this pt.
 if(isempty(trainFeats))
@@ -49,10 +49,10 @@ stdFeats = std(trainFeats,[],1);
 %%
 %%%%%%%%%%%%%%%%%%%%%%%  TEST   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %get the training features and labels
-[testFeats, testLabels] = szPred_test(pt{i}, usernm, pswdBin, trPct, winLen, winDisp, szHorizon);
+[testFeats, testLabels] = szPred_testNOint(pt{i}, usernm, pswdBin, trPct, winLen, winDisp, szHorizon);
 
 data = struct('train',[trainLabels trainFeats],'mean',avgFeats,'std',stdFeats,'test',[testLabels testFeats]);
-saveLabel = [pt{i} '_szPred_30secFeats.mat'];
+saveLabel = ['H:\jaredwil\szPred_feats\Win_5min' pt{i} '_szPred_5minFeats.mat'];
 save(saveLabel,'data','-v7.3');
 
 end
