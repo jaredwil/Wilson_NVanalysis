@@ -20,7 +20,7 @@ warning('off')
 addpath(genpath('ieeg-matlab-1.8.3'))
 addpath(genpath('Wilson_NVanalysis'))
 addpath(genpath('H:\jaredwil\szPred_feats'))  %this is where .mat file are contained on Laplace
-% addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Lasso'))  %this is where .mat file are contained on local comp
+addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data'))  %this is where .mat file are contained on local comp
 
 %%
 % Define algorithm specifics 
