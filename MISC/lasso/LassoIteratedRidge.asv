@@ -115,7 +115,7 @@ while i < maxIter
         end
         optCond = sum(abs(g(abs(wtemp)>threshold) + lambda*sign(wtemp(abs(wtemp)>threshold))))+sum(g(abs(wtemp)<=threshold) > lambda);
 
-%         fprintf('%5d %15.2e %15.2e %15.5e %5d %15.5e\n',i,sum(abs(w)),sum(abs(w-wold)),sum((y-X*w).^2)+2*lambda*sum(abs(w)),sum(abs(w)>threshold),optCond);
+        fprintf('%5d %15.2e %15.2e %15.5e %5d %15.5e\n',i,sum(abs(w)),sum(abs(w-wold)),sum((y-X*w).^2)+2*lambda*sum(abs(w)),sum(abs(w)>threshold),optCond);
         j=j+1;
         wp(:,j) = w;
     end

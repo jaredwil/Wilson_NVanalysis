@@ -106,8 +106,8 @@ avgFeats = mean(trainFeats,1);
 stdFeats = std(trainFeats,[],1);
 trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats), stdFeats);
 
-numFolds = 10;
-cvIdx = crossvalind('Kfold', size(trainLabels,1), numFolds);
+
+Indices = crossvalind('Kfold', N, K)
 
 
 %%
