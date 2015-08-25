@@ -72,7 +72,7 @@ lassoTime = zeros(1,numel(pt));
 %%
 %begin function
 %loop through all pts0
-for i = 1:numel(pt)  %%%%%TEMPORARY for debug
+for i = 12%:numel(pt)  %%%%%TEMPORARY for debug
 close all;
 clear ('h','h1','h2');
     
@@ -109,8 +109,23 @@ avgFeats = mean(trainFeats,1);
 stdFeats = std(trainFeats,[],1);
 trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats), stdFeats);
 
+%%%%%%%%%%%%%%%%%%%%%%%RESHAPE TRAIN FEATURES%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+N = 1:4; %number of history samples
+samples = size(trainFeats,1);
+features = size(trainFeats,2);
+startSAMP = max(N)+1;
+M = (samples-length(N));  %number of time bins
+%create 'R' matrix for linear regression algorithm
+r = zeros(M, features*length(N)+1);
+for resIdx = 1:M
+    temp = trainFeats(startSAMP + (resIdx-1) - N,:);   %temp is a temporary matrix    
+    r(resIdx,:) = [1 temp(:)'];
+end
+
+trainR = r;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 numFolds = 10;
-cvIdx    = crossvalind('Kfold', size(trainLabels,1), numFolds);
+cvIdx    = crossvalind('Kfold', size(trainR,1), numFolds);
 numLam   = 100;
 lambda   = linspace(1e4,1e6,numLam);
 
@@ -119,10 +134,10 @@ tLasso_MSE  = zeros(numFolds,numLam);
 %cross validation to find the best lambda
 for cvIter = 1:numFolds
     disp(['Cross-Validation Progress: ' num2str(cvIter) '/' num2str(numFolds)])
-    trainFeatsCV = trainFeats(cvIdx ~= cvIter,:);
+    trainFeatsCV = trainR(cvIdx ~= cvIter,:);
     trainLabelsCV = trainLabels(cvIdx ~= cvIter,:);
     
-    evalFeats = trainFeats(cvIdx == cvIter,:);
+    evalFeats = trainR(cvIdx == cvIter,:);
     evalLabels = trainLabels(cvIdx == cvIter,:);
     %%
     % Train Lasso Regression UseParallel
@@ -150,7 +165,7 @@ for cvIter = 1:numFolds
 
     dzT = sum(w == 0,1);
     %compute intercepts
-    tInt = repmat(mean(trainLabels),1,numLam) - mean(trainFeats*w,1);
+    tInt = repmat(mean(trainLabelsCV),1,numLam) - mean(trainFeatsCV*w,1);
 
     tInt2 = repmat(tInt, size(evalFeats,1),1);
 
@@ -169,16 +184,19 @@ tLasso_MSE = mean(tLasso_MSE,1);
 
 tLasso_coor = mean(tLasso_coor,1);
 
-plot(lambda, tLasso_MSE,'r.-')
+figure(1)
+semilogx(lambda, tLasso_MSE,'r.-')
+xlabel('Lambda')
+ylabel('MSE')
 
-% minIdx = tINFO.IndexMinMSE;
+
 % seIdx  = tINFO.Index1SE;
 corrIdx = tLasso_coor == max(tLasso_coor);
 minIdx = tLasso_MSE == min(tLasso_MSE);
 
 figure(6)
 title('Number of Non-Zero Features vs Resulting Correlation')
-h = plot(lambda,tLasso_coor*100,'r.-');
+h = semilogx(lambda,tLasso_coor*100,'r.-');
 % xlabel('Number of Feature Weights Zeroed in Lasso Model')
 xlabel('Lambda')
 ylabel('Resulting Test Correlation (%)')
@@ -203,19 +221,22 @@ saveas(h,plotName,'jpg')
 corrLam = lambda(corrIdx);
 minLam = lambda(minIdx);
         
-[w{corrIdx}, ~, numIter{corrIdx}] = LassoBlockCoordinate(trainFeats,trainLabels,lambda(corrIdx),'maxIter',50000);
+[bestLasso_corr, ~, ~] = LassoBlockCoordinate(trainR,trainLabels,lambda(corrIdx),'maxIter',50000);
+[bestLasso_Min, ~, ~] = LassoBlockCoordinate(trainR,trainLabels,lambda(minIdx),'maxIter',50000);
 
 
-bestLasso_corr = w(:,corrIdx);
-% bestLasso_1SE = fLasso(:,seIdx);
-bestLasso_Min = w(:,minIdx);
+% bestLasso_corr = w(:,corrIdx);
+% % bestLasso_1SE = fLasso(:,seIdx);
+% bestLasso_Min = w(:,minIdx);
 
-numFeats_corr = dzT(corrIdx); 
+numFeats_corr = sum(bestLasso_corr == 0);
 % numFeats_1SE = dzT(seIdx); 
-numFeats_Min = dzT(minIdx);
+numFeats_Min = sum(bestLasso_Min == 0);
 
-int_corr = tInt(corrIdx);
-int_Min  = tInt(minIdx);
+
+int_corr = mean(trainLabels) -  mean(trainR*bestLasso_corr);
+int_Min  = mean(trainLabels) -  mean(trainR*bestLasso_Min);
+
 
 % figure(55)
 % plot(trainLabels);
@@ -238,12 +259,27 @@ save(saveLabel,'lassoRes','-v7.3');
 
 %normalize test feats
 testFeats = bsxfun(@rdivide, bsxfun(@minus,testFeats,avgFeats), stdFeats);
+%%%%%%%%%%%%%%%%%%%%%%%RESHAPE TRAIN FEATURES%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+samples = size(testFeats,1);
+features = size(testFeats,2);
+startSAMP = max(N)+1;
+M = (samples-length(N));  %number of time bins
+%create 'R' matrix for linear regression algorithm
+r = zeros(M, features*length(N)+1);
+temp = 1;
+for resIdx = 1:M
+    temp = testFeats(startSAMP + (resIdx-1) - N,:);   %temp is a temporary matrix    
+    r(resIdx,:) = [1 temp(:)'];
+    temp = 1;
+end
 
+testR = r;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-tInt2 = repmat(tInt, size(testFeats,1),1);
+tInt2 = repmat(tInt, size(testR,1),1);
 
 %TEST SET CORR TEST
-utLasso = testFeats*w + tInt2;
+utLasso = testR*w + tInt2;
 
 tTest = repmat(testLabels,1,numLam);
 
@@ -253,20 +289,22 @@ tLasso_coor = tLasso_coor(1,:);
 tLasso_MSE = mean(bsxfun(@minus,utLasso,testLabels).^2,1);
 
 figure(10)
-plot(lambda, tLasso_MSE,'r.-')
-
+semilogx(lambda, tLasso_MSE,'r.-')
+xlabel('Lambda')
+ylabel('MSE')
 % minIdx = tINFO.IndexMinMSE;
 % seIdx  = tINFO.Index1SE;
 
 figure(6)
+hold on;
 title('Number of Non-Zero Features vs Resulting Correlation')
-h = plot(lambda,tLasso_coor*100,'b.-');
+h = semilogx(lambda,tLasso_coor*100,'b.-');
 legend('Train','Test')
 
 
 % uSE = testFeats*fLasso(:,seIdx) + tInt2(seIdx);
-uMin = testFeats*w(:,minIdx) + tInt2(minIdx);
-uCorr = testFeats*w(:,corrIdx) + tInt2(:,corrIdx);
+uMin = testR*w(:,minIdx) + tInt2(minIdx);
+uCorr = testR*w(:,corrIdx) + tInt2(:,corrIdx);
 % uCorr = testFeats*w(:,5);
 
 %TEST/PLOT RESULTS!
