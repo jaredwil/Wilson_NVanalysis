@@ -19,8 +19,8 @@ clear all; close all; clc;
 warning('off')
 addpath(genpath('ieeg-matlab-1.8.3'))
 addpath(genpath('Wilson_NVanalysis'))
-addpath(genpath('H:\jaredwil\szPred_feats'))  %this is where .mat file are contained on Laplace
-% addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data'))  %this is where .mat file are contained on local comp
+% addpath(genpath('H:\jaredwil\szPred_feats'))  %this is where .mat file are contained on Laplace
+addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data'))  %this is where .mat file are contained on local comp
 
 %%
 % Define algorithm specifics 
@@ -72,7 +72,7 @@ lassoTime = zeros(1,numel(pt));
 %%
 %begin function
 %loop through all pts0
-for i = 12 %numel(pt)  %%%%%TEMPORARY for debug
+for i = 12%:numel(pt)  %%%%%TEMPORARY for debug
 close all;
 clear ('h','h1','h2');
     
@@ -101,58 +101,74 @@ testFeats = test(:,2:end);
 %Remove intericatal Data from training data
 trainFeats(trainLabels > szHorizon*60*60,:) = [];
 trainLabels(trainLabels > szHorizon*60*60,:) = [];
+
+testFeats(testLabels > szHorizon*60*60,:) = [];
+testLabels(testLabels > szHorizon*60*60,:) = [];
 %normalize features
 avgFeats = mean(trainFeats,1);
 stdFeats = std(trainFeats,[],1);
 trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats), stdFeats);
 
-numFolds = 10;
-cvIdx = crossvalind('Kfold', size(trainLabels,1), numFolds);
+numFolds = 2;
+cvIdx    = crossvalind('Kfold', size(trainLabels,1), numFolds);
+numLam   = 5;
+lambda   = linspace(1e4,1e6,numLam);
 
-
-%%
-% Train Lasso Regression UseParallel
-numLam = 5;
-lambda = linspace(1e4,1e6,numLam);
-% w         = zeros(size(trainFeats,2),numLam);
-w         = cell(1,numLam);
-% wp      = zeros(numLam,1);
-numIter = cell(numLam,1);
-
-tic;
-disp(['Training Lasso Model on Patient: ' pt{i} ' (NO INTERICTAL)'])
-parfor_progress(numLam);
-for lam = 1:length(lambda)
+tLasso_coor = zeros(numFolds,numLam);
+tLasso_MSE  = zeros(numFolds,numLam);
+%cross validation to find the best lambda
+for cvIter = 1:numFolds
+    disp(['Cross-Validation Progress: ' num2str(cvIter) '/' num2str(numFolds)])
+    trainFeatsCV = trainFeats(cvIdx ~= cvIter,:);
+    trainLabelsCV = trainLabels(cvIdx ~= cvIter,:);
     
-    disp(['Progress: '  num2str(lam) '/' num2str(length(lambda))]);
-        [w{lam}, ~, numIter{lam}] = LassoGaussSeidel(trainFeats,trainLabels,lambda(lam),'maxIter',50000,'mode',1);
-%     [w{lam}, ~, numIter{lam}] = LassoBlockCoordinate(trainFeats,trainLabels,lambda(lam),'maxIter',50000);
-%     [w{lam}, wp, numIter{lam}] = LassoIteratedRidge(trainFeats,trainLabels,lambda(lam),'maxIter',50000);
-    parfor_progress;
+    evalFeats = trainFeats(cvIdx == cvIter,:); 
+    evalLabels = trainLabels(cvIdx == cvIter,:);
+    %%
+    % Train Lasso Regression UseParallel
+    w        = cell(1,numLam);
+    numIter  = cell(numLam,1);
+
+    tic;
+    disp(['Training Lasso Model on Patient: ' pt{i} ' (NO INTERICTAL)'])
+    parfor_progress(numLam);
+    for lam = 1:length(lambda)
+
+        disp(['Progress: '  num2str(lam) '/' num2str(length(lambda))]);
+        [w{lam}, ~, numIter{lam}] = LassoGaussSeidel(trainFeatsCV,trainLabelsCV,lambda(lam),'maxIter',50000,'mode',1);
+%         [w{lam}, ~, numIter{lam}] = LassoBlockCoordinate(trainFeatsCV,trainLabelsCV,lambda(lam),'maxIter',50000);
+    %     [w{lam}, wp, numIter{lam}] = LassoIteratedRidge(trainFeats,trainLabels,lambda(lam),'maxIter',50000);
+        parfor_progress;
+
+    end
+    parfor_progress(0);
+
+    %BOOM!!! Done.
+    disp(['DONE Training Lasso Model on Patient: ' pt{i}])
+    lassoTime(i) = toc;
+
+    w = cell2mat(w);
+
+    dzT = sum(w == 0,1);
+    %compute intercepts
+    tInt = repmat(mean(trainLabelsCV),1,numLam) - mean(trainFeatsCV*w,1);
+
+    tInt2 = repmat(tInt, size(evalFeats,1),1);
+
+    utLasso = evalFeats*w + tInt2;
+
+    tTrain = repmat(evalLabels,1,numLam);
+
+    tmp = corr(tTrain,utLasso);
+    tLasso_coor(cvIter,:) = tmp(1,:);
+
+    tLasso_MSE(cvIter,:) = mean(bsxfun(@minus,utLasso,evalLabels).^2,1);
 
 end
-parfor_progress(0);
+stdMSE = std(tLasso_MSE);
+tLasso_MSE = mean(tLasso_MSE,1);
 
-%BOOM!!! Done.
-disp(['DONE Training Lasso Model on Patient: ' pt{i}])
-lassoTime(i) = toc;
-
-w = cell2mat(w);
-
-dzT = sum(w == 0,1);
-%compute intercepts
-tInt = repmat(mean(trainLabels),1,numLam) - mean(trainFeats*w,1);
-
-tInt2 = repmat(tInt, size(trainFeats,1),1);
-
-utLasso = trainFeats*w + tInt2;
-
-tTrain = repmat(trainLabels,1,numLam);
-
-tLasso_coor = corr(tTrain,utLasso);
-tLasso_coor = tLasso_coor(1,:);
-
-tLasso_MSE = mean(bsxfun(@minus,utLasso,trainLabels).^2,1);
+tLasso_coor = mean(tLasso_coor,1);
 
 plot(lambda, tLasso_MSE,'r.-')
 
@@ -163,8 +179,9 @@ minIdx = tLasso_MSE == min(tLasso_MSE);
 
 figure(6)
 title('Number of Non-Zero Features vs Resulting Correlation')
-h = plot(dzT,tLasso_coor*100,'r.');
-xlabel('Number of Feature Weights Zeroed in Lasso Model')
+h = plot(lambda,tLasso_coor*100,'r.-');
+% xlabel('Number of Feature Weights Zeroed in Lasso Model')
+xlabel('Lambda')
 ylabel('Resulting Test Correlation (%)')
 grid on;
 hold on;
@@ -182,26 +199,38 @@ hold on;
 % set(gca,'YScale','log');
 % plotName = ['H:\jaredwil\Lasso Results\' pt{i} '_mseRes'];
 % saveas(h2,plotName,'jpg')
-% 
 
-% bestLasso_corr = fLasso(:,corrIdx);
-% bestLasso_1SE = fLasso(:,seIdx);
-% bestLasso_Min = fLasso(:,minIdx);
+%Retrain with best lambda
+corrLam = lambda(corrIdx);
+minLam = lambda(minIdx);
+        
+[bestLasso_corr, ~, ~] = LassoBlockCoordinate(trainFeats,trainLabels,lambda(corrIdx),'maxIter',50000);
+[bestLasso_Min, ~, ~] = LassoBlockCoordinate(trainFeats,trainLabels,lambda(minIdx),'maxIter',50000);
 
-% numFeats_corr = dzT(corrIdx); 
+
+% bestLasso_corr = w(:,corrIdx);
+% % bestLasso_1SE = fLasso(:,seIdx);
+% bestLasso_Min = w(:,minIdx);
+
+numFeats_corr = sum(bestLasso_corr == 0);
 % numFeats_1SE = dzT(seIdx); 
-% numFeats_Min = dzT(minIdx);
+numFeats_Min = sum(bestLasso_Min == 0);
 
-figure(55)
-plot(trainLabels);
-hold on;
-plot(utLasso(:,minIdx));
+
+int_corr = mean(trainLabels) -  mean(trainFeatsCV*bestLasso_corr);
+int_Min  = mean(trainLabels) -  mean(trainFeatsCV*bestLasso_Min);
+
+
+% figure(55)
+% plot(trainLabels);
+% hold on;
+% plot(utLasso(:,minIdx));
 
 
 %SAVE ALL 
-% lassoRes = struct('coef',struct('corr',bestLasso_corr,'min',bestLasso_Min, ...
-%     'se',bestLasso_1SE),'int',[bestInt_corr bestInt_Min bestInt_1SE], ...
-%     'numFeats', [numFeats_corr numFeats_Min numFeats_1SE]);
+lassoRes = struct('coef',struct('corr',bestLasso_corr,'min',bestLasso_Min), ...
+    'int',[int_corr int_Min], ...
+    'numFeats', [numFeats_corr numFeats_Min]);
 % saveLabel = ['H:\jaredwil\Lasso Results\' pt{i} '_bestLasso.mat'];
 % save(saveLabel,'lassoRes','-v7.3');
 
@@ -227,25 +256,21 @@ tLasso_coor = tLasso_coor(1,:);
 
 tLasso_MSE = mean(bsxfun(@minus,utLasso,testLabels).^2,1);
 
+figure(10)
 plot(lambda, tLasso_MSE,'r.-')
 
 % minIdx = tINFO.IndexMinMSE;
 % seIdx  = tINFO.Index1SE;
-corrIdx = tLasso_coor == max(tLasso_coor);
-minIdx = tLasso_MSE == min(tLasso_MSE);
 
 figure(6)
 title('Number of Non-Zero Features vs Resulting Correlation')
-h = plot(dzT,tLasso_coor*100,'r.');
-xlabel('Number of Feature Weights Zeroed in Lasso Model')
-ylabel('Resulting Test Correlation (%)')
-grid on;
-hold on;
+h = plot(lambda,tLasso_coor*100,'b.-');
+legend('Train','Test')
 
 
 % uSE = testFeats*fLasso(:,seIdx) + tInt2(seIdx);
-% uMin = testFeats*fLasso(:,minIdx) + tInt2(minIdx);
-uCorr = testFeats*w(:,minIdx) + tInt2(:,minIdx);
+uMin = testFeats*w(:,minIdx) + tInt2(minIdx);
+uCorr = testFeats*w(:,corrIdx) + tInt2(:,corrIdx);
 % uCorr = testFeats*w(:,5);
 
 %TEST/PLOT RESULTS!
@@ -253,15 +278,16 @@ timeMin = linspace(0,(size(testLabels,1)-1)*30,size(testLabels,1))/60;
 
 figure(9)
 % h3 = plot(timeMin,uSE/60);
-% h3 = plot(timeMin,uMin/60);
-h3 = plot(timeMin,smooth(uCorr/60,10));
+h3 = plot(timeMin,uMin/60);
 hold on;
+h3 = plot(timeMin,smooth(uCorr/60,10));
 h3 = plot(timeMin,testLabels/60);
 hline(30,'r:');
 ylabel('Time to Sz (min)')
 xlabel('Time (min)')
 xlim([0 max(timeMin)])
-% ylim([min(testLabels/60)-std(testLabels/60) , max(testLabels/60)+std(testLabels/60)])
+ylim([min(testLabels/60)-std(testLabels/60) , max(testLabels/60)+std(testLabels/60)])
+legend('Min MSE','Max Correlation','Test Labels')
 % plotName = ['H:\jaredwil\Lasso Results\' pt{i} '_lassoRes'];
 % saveas(h3,plotName,'jpg')
 

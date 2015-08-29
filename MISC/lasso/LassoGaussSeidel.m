@@ -45,7 +45,7 @@ viol = computeViol(p,alpha,threshold,gamma,g);
 % start log
 if verbose==2
     w_old = alpha;
-    fprintf('%10s %10s %15s %15s %15s %15s %5s\n','iter','line_mins','n(w)','n(step)','f(w)','max(viol)','free');
+%     fprintf('%10s %10s %15s %15s %15s %15s %5s\n','iter','line_mins','n(w)','n(step)','f(w)','max(viol)','free');
     j=1;
     wp = alpha;
 end
@@ -77,8 +77,8 @@ while max_viol > tau && line_mins < maxIter
     iteration = iteration+1;
     % Update the log
     if verbose==2
-        fprintf('%10d %10d %15.2e %15.2e %15.2e %15.2e %5d\n',iteration,line_mins,sum(abs(alpha)),sum(abs(alpha-w_old)),...
-            sum((X*alpha-y).^2)+gamma*sum(abs(alpha)),max(viol.*(abs(alpha) < threshold)),sum(abs(alpha) >= threshold));
+%         fprintf('%10d %10d %15.2e %15.2e %15.2e %15.2e %5d\n',iteration,line_mins,sum(abs(alpha)),sum(abs(alpha-w_old)),...
+%             sum((X*alpha-y).^2) + gamma*sum(abs(alpha)),max(viol.*(abs(alpha) < threshold)),sum(abs(alpha) >= threshold));
         w_old = alpha;
         j=j+1;
         wp(:,j) = alpha;
