@@ -14,6 +14,7 @@ clear all; close all; clc;
 warning('off')
 addpath(genpath('ieeg-matlab-1.8.3'))
 addpath(genpath('Wilson_NVanalysis'))
+addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data'))  %this is where .mat file are contained on local comp
 
 %%
 % Define algorithm specifics 
@@ -33,7 +34,7 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 %%
 %begin function
 %loop through all pts
-for i = 12;  %%%%%TEMPORARY for debug
+for i = 1:numel(pt);  %%%%%TEMPORARY for debug
 
 session = IEEGSession(pt{i},usernm,pswdBin) ;
 fs = session.data.sampleRate;               %Find sampling Rate
@@ -85,6 +86,7 @@ else
         'startT/endT returned as an empty matrix'])
     startT = [];
     endT = [];
+    continue;
 end
 
 tot = [startT ptLabel];
@@ -101,7 +103,7 @@ trainLab = sortTot(1:numTr,:);
 testLab = sortTot(numTr+1:end,:);
 
 
-label = [pt{i} '_szPred_30secFeats.mat'];
+label = [pt{i} '_szPred_5minFeats.mat'];
 
 try   
     load(label);
@@ -140,34 +142,37 @@ testszStIdx  = [];
 trainszStIdx = [1; trainszStIdx];
 testszStIdx = [1; testszStIdx];
 
-szTrainLabels = zeros(size(trainLabels));
-szTestLabels  = zeros(size(testLabels));
+szTrainLabels = zeros(size(trainLabels,1),2);
+szTestLabels  = zeros(size(testLabels,1),2);
 %create train labels
 for sz = 1:length(trainszStIdx)
     if(sz == length(trainszStIdx))
-        szTrainLabels(trainszStIdx(sz):end) = trainST(sz);
+        szTrainLabels(trainszStIdx(sz):end,1) = trainLab(sz,1);
+        szTrainLabels(trainszStIdx(sz):end,2) = trainLab(sz,2);
     else
-        szTrainLabels(trainszStIdx(sz):trainszStIdx(sz+1)) = trainST(sz);
+        szTrainLabels(trainszStIdx(sz):trainszStIdx(sz+1),1) = trainLab(sz,1);
+        szTrainLabels(trainszStIdx(sz):trainszStIdx(sz+1),2) = trainLab(sz,2);
+
     end
 
 end
 %create test labels
 for sz = 1:length(testszStIdx)
     if(sz == length(testszStIdx))
-        szTestLabels(testszStIdx(sz):end) = testST(sz);
+        szTestLabels(testszStIdx(sz):end,1) =  testLab(sz,1);
+        szTestLabels(testszStIdx(sz):end,2) =  testLab(sz,2);
     else
-        szTestLabels(testszStIdx(sz):testszStIdx(sz+1)) = testST(sz);
+        szTestLabels(testszStIdx(sz):testszStIdx(sz+1),1) = testLab(sz,1);
+        szTestLabels(testszStIdx(sz):testszStIdx(sz+1),2) = testLab(sz,2);
     end
 end
 
-szT = struct('train',trainST,'test',testST);
+szT = struct('train',trainLab,'test',testLab);
 labels = struct('train',szTrainLabels,'test',szTestLabels);
 
-szTLabels = struct('szT',szT,'labels',labels);
-saveLabel = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\30secFeats\' pt{i} '_szTLabels.mat'];
-save(saveLabel,'szTLabels','-v7.3');
-
-
+szType = struct('szT',szT,'labels',labels);
+saveLabel = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\5minFeats\' pt{i} '_szTypeLabels.mat'];
+save(saveLabel,'szType','-v7.3');
 
 
 end
