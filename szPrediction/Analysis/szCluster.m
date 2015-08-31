@@ -30,6 +30,63 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 %begin function
 %loop through all pts
 for i = 12 ;  %%%%%TEMPORARY for debug
+       
+    label = [pt{i} '_szPred_30secFeats.mat'];
+    tylabel = [pt{i} '_szTypeLabels.mat'];
+
+    try   
+        load(label);
+        load(tylabel);
+    catch
+        disp('This pt. does not have a save .mat to load from')
+        continue;
+
+    end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% get feature data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    train   = data.train;
+    test    = data.test;
+    % avgFeats = data.mean;
+    % stdFeats = data.std;
+
+    %isolate labels and feats in training data
+    trainLabels = train(:,1);
+    trainFeats = train(:,2:end);
+    testLabels = test(:,1);
+    testFeats = test(:,2:end);
+
+    %Remove intericatal Data from training data & Testing Data
+    trainFeats(trainLabels > szHorizon*60*60,:) = [];
+    trainLabels(trainLabels > szHorizon*60*60,:) = [];
+    testFeats(testLabels > szHorizon*60*60,:) = [];
+    testLabels(testLabels > szHorizon*60*60,:) = [];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%% get sz time and type labels%%%%%%%%%%%%%%%%%%%%
+
+    trainSzT = szType.labels.train;
+    testSzT = szType.labels.test;
+    
+    szTimes = [szType.szT.train;szType.szT.test];
+    
+    
+    allFeat = [trainFeats; testFeats];
+    allSzLab  = [trainSzT;testSzT];
+    
+    
+    %szTimeline
+    figure(1)
+    vline(szTimes(:,1)/60/60/24)
+    
+    %average feature across sz do pca then cluster. 
+    [~,~, uIdx] = unique(allSzLab(:,1),'stable');                    
+    
+    
+    
+    
+    
+    
+    
+    
+
 
 
 
