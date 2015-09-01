@@ -9,10 +9,7 @@ clear all; close all; clc;
 warning('off')
 addpath(genpath('ieeg-matlab-1.8.3'))
 addpath(genpath('Wilson_NVanalysis'))
-% addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data'))  %this is where .mat file are contained on local comp
-% addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\30secFeats'))  %this is where .mat file are contained on local comp
-addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\5minFeats'))  %this is where .mat file are contained on local comp
-
+addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data'))  %this is where .mat file are contained on local comp
 
 %%
 % Define algorithm specifics 
@@ -32,11 +29,9 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 %%
 %begin function
 %loop through all pts
-for i = 7;  %%%%%TEMPORARY for debug
+for i = ;  %%%%%TEMPORARY for debug
        
-%     label = [pt{i} '_szPred_30secFeats.mat'];
-    label = [pt{i} '_szPred_5minFeats.mat'];
-
+    label = [pt{i} '_szPred_30secFeats.mat'];
     tylabel = [pt{i} '_szTypeLabels.mat'];
 
     try   
@@ -76,15 +71,6 @@ for i = 7;  %%%%%TEMPORARY for debug
     
     allFeat = [trainFeats; testFeats];
     allSzLab  = [trainSzT;testSzT];
-    
-    
-%%%%%%%%%%%%%% REMOVE SOME SZ %%%%%%%%%%%%%%%%%%%%%%%%%%%
-%ONLY LOOK AT CCS
-allFeat(allSzLab(:,2)~=1,:) = [];
-allSzLab(allSzLab(:,2)~=1,:) = [];
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     
     %szTimeline
@@ -141,10 +127,10 @@ allSzLab(allSzLab(:,2)~=1,:) = [];
     pcSix = (pcSix - mean(pcSix))./std(pcSix);
 
     pc = [];
-    pc = [pcOne pcTwo pcThr];% pcFou pcFve pcSix];
+    pc = [pcOne pcTwo pcThr pcFou pcFve pcSix];
 
     %Clustering of spikes using k means and top two pc's
-    group = kmeans(pc,2,'Distance','correlation','Replicates',100);
+    group = kmeans(pc,2,'Distance','correlation','Replicates',25);
     
     
         
