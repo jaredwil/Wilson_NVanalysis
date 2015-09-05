@@ -162,7 +162,7 @@ allSzLab(allSzLab(:,2)~=1,:) = [];
     legend('Spike Group 1','Spike Group 2','Location','best')
     title('Spike Waveforms Clustered by Top Two Principal Components')
 
-    
+     
     
     
     

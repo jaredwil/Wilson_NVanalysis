@@ -23,7 +23,7 @@ numNan = cell(length(pt),1);
 ch = 1:16;
 
 
-for i = 2:length(pt)
+for i = 12%:length(pt)
 % for i = 4
     disp(['Progress: ' num2str(i) '/14'])
     %Start Session
@@ -35,10 +35,13 @@ for i = 2:length(pt)
     labelTest1 = 'spdTest1';
     labelTest2 = 'spdTest2';
 
-     [area, numNan{i}] = calcFeature_NV(session.data, ch ,'area', min, 1,label,[0 100*day], hour,  1);
+     [fwhm, numNan{i}] = calcFeature_NV(session.data, ch ,'fwhm', min, 1,label,[0 100*day], hour,  1);
 
 %    [energy{i}, numNan{i}] = calcFeature_NV(session.data, ch ,'energy', min, labelEnergy,[0 60*day], hour,  1);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%TEST TEST TEST TEST TEST TEST %%%%%%%%%%%%%%%%
+%      [test, testNan] = calcFeature_NV(session.data, ch ,'hwhm', min, 1,label,[0 1*hour], hour,  0);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
