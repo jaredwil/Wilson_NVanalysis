@@ -23,7 +23,7 @@ pswdBin = 'jar_ieeglogin.bin';
 trPct = 0.7;
 winLen = 30;
 winDisp = 30;
-szHorizon = 1; %hours
+szHorizon = 2; %hours
 
 % patients of interest on ieeg portal
 pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
@@ -171,7 +171,7 @@ szT = struct('train',trainLab,'test',testLab);
 labels = struct('train',szTrainLabels,'test',szTestLabels);
 
 szType = struct('szT',szT,'labels',labels);
-saveLabel = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\5minFeats\' pt{i} '_szTypeLabels.mat'];
+saveLabel = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\5minFeats\' pt{i} '_szTypeLabels5.mat'];
 save(saveLabel,'szType','-v7.3');
 
 

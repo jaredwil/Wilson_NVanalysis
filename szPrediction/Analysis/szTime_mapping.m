@@ -1,3 +1,8 @@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%WARNING OLD DONT USE
+
 %Jared Wilson
 %8/25/15
 
@@ -49,7 +54,7 @@ trainET = endT(1:numTr);
 testST = startT(numTr+1:end);
 testET = endT(numTr+1:end);    
     
-label = [pt{i} '_szPred_30secFeats.mat'];
+label = [pt{i} '_szPred_5minFeats.mat'];
 
 try   
     load(label);
@@ -112,7 +117,7 @@ szT = struct('train',trainST,'test',testST);
 labels = struct('train',szTrainLabels,'test',szTestLabels);
 
 szTLabels = struct('szT',szT,'labels',labels);
-saveLabel = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\30secFeats\' pt{i} '_szTLabels.mat'];
+saveLabel = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\5minFeats\' pt{i} '_szTypeLabels5.mat'];
 save(saveLabel,'szTLabels','-v7.3');
 
 end
