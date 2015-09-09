@@ -1,4 +1,4 @@
-%Jared Wilson
+%Jared Wilson 
 %Look at correlation by seizure
 
 
@@ -31,7 +31,7 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 %%
 %begin function
 %loop through all pts
-for i = 12;  %%%%%TEMPORARY for debug
+for i = 2;  %%%%%TEMPORARY for debug
        
 %     label = [pt{i} '_szPred_30secFeats.mat'];
     label = [pt{i} '_szPred_5minFeats.mat'];
@@ -66,10 +66,10 @@ for i = 12;  %%%%%TEMPORARY for debug
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%% get sz time and type labels%%%%%%%%%%%%%%%%%%%%
 
-    trainSzT = szT.labels.train;
-    testSzT = szT.labels.test;
+    trainSzT = szType.labels.train;
+    testSzT = szType.labels.test;
     
-    szTimes = [szT.szT.train;szType.szT.test];
+    szTimes = [szType.szT.train;szType.szT.test];
     
     szTimes(:,1) = szTimes(:,1)/60/60/24;
     
@@ -114,7 +114,11 @@ allLabs(IdxRemove,:) = [];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
 %load feature weights
-load('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\resultsV1\NVC1001_23_005_bestLasso_CCS.mat')
+% load('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\resultsV1\NVC1001_23_005_bestLasso_CCS.mat')
+
+featLab = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Res LassoLib\' pt{i} '_bestLasso5.mat'];
+load(featLab);
+
 
 f = lassoRes.coef.min;
 tInt = lassoRes.int(2);
@@ -130,7 +134,22 @@ hold on;
 plot(smooth(predLab,5));
 
 
+    %average feature across sz do pca then cluster. 
+    [numSz,~, uIdx] = unique(allSzLab(:,1),'stable'); 
+    
+    szCorr = zeros(numel(numSz),1);
+    time = zeros(numel(numSz),1);
 
-
+    for sz = 1:numel(numSz);
+%         szAvg_feat(sz,:) = [mean(allFeat(uIdx == sz,:),1) szTimes(sz,1)];
+        szCorr(sz) = corr(allLabs(uIdx == sz),predLab(uIdx == sz));
+        time(sz) = mode(allSzLab(uIdx == sz,1))/60/60/24;
+    end
+    
+    figure(2)
+    plot(time,szCorr,'r.','MarkerSize',20)
+    hold on;
+    grid on;
+    vline(time)
 
 end

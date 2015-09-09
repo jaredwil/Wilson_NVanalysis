@@ -1,4 +1,4 @@
-%Jared Wilson
+%Jared Wilson 
 %Look at correlation by seizure
 
 
@@ -31,7 +31,7 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 %%
 %begin function
 %loop through all pts
-for i = 12;  %%%%%TEMPORARY for debug
+for i = 14;  %%%%%TEMPORARY for debug
        
 %     label = [pt{i} '_szPred_30secFeats.mat'];
     label = [pt{i} '_szPred_5minFeats.mat'];
@@ -89,39 +89,43 @@ allFeat(allSzLab(:,2)~=1,:) = [];
 allLabs(allSzLab(:,2)~=1) = [];
 allSzLab(allSzLab(:,2)~=1,:) = [];
 
-%%%%%%%%%%%%%%%%%%%%%%%RESHAPE FEATURES%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-N = 1:2; %number of history samples
-samples = size(allFeat,1);
-features = size(allFeat,2);
-startSAMP = max(N)+1;
-M = (samples-length(N));  %number of time bins
-%create 'R' matrix for linear regression algorithm
-r = zeros(M, features*length(N)+1);
-for resIdx = 1:M
-    temp = allFeat(startSAMP + (resIdx-1) - N,:);   %temp is a temporary matrix    
-    r(resIdx,:) = [1 temp(:)'];
-end
-
-allLabs = allLabs(startSAMP:end,:);
-allSzLab = allSzLab(startSAMP:end,:);
-
-[~,IdxRemove] = findpeaks(allLabs);
-
-r(IdxRemove,:) = [];
-allSzLab(IdxRemove,:) = [];
-allLabs(IdxRemove,:) = [];
+% %%%%%%%%%%%%%%%%%%%%%%%RESHAPE FEATURES%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% N = 1:2; %number of history samples
+% samples = size(allFeat,1);
+% features = size(allFeat,2);
+% startSAMP = max(N)+1;
+% M = (samples-length(N));  %number of time bins
+% %create 'R' matrix for linear regression algorithm
+% r = zeros(M, features*length(N)+1);
+% for resIdx = 1:M
+%     temp = allFeat(startSAMP + (resIdx-1) - N,:);   %temp is a temporary matrix    
+%     r(resIdx,:) = [1 temp(:)'];
+% end
+% 
+% allLabs = allLabs(startSAMP:end,:);
+% allSzLab = allSzLab(startSAMP:end,:);
+% 
+% [~,IdxRemove] = findpeaks(allLabs);
+% 
+% r(IdxRemove,:) = [];
+% allSzLab(IdxRemove,:) = [];
+% allLabs(IdxRemove,:) = [];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
 %load feature weights
-load('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\resultsV1\NVC1001_23_005_bestLasso_CCS.mat')
+% load('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\resultsV1\NVC1001_23_005_bestLasso_CCS.mat')
 
-f = lassoRes.coef.min;
-tInt = lassoRes.int(2);
-tInt2 = repmat(tInt, size(r,1),1);
+featLab = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Res LassoLib\' pt{i} '_bestLasso5.mat'];
+load(featLab);
 
 
-predLab = r*f + tInt2;
+f = lassoRes.coef.totmin;
+tInt = lassoRes.int(3);
+tInt2 = repmat(tInt, size(allFeat,1),1);
+
+
+predLab = allFeat*f + tInt2;
 
 %visual assesment
 figure(1)
