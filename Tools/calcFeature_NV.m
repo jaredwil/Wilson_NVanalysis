@@ -76,7 +76,7 @@ ZCFn = @(x) sum((x(1:end-1,:)>repmat(mean(x),size(x,1)-1,1)) & x(2:end,:)<repmat
 LLFn = @(x) mean(abs(diff(x)));
 LLFn2 = @(X, winLen) conv2(abs(diff(X,1)),  repmat(1/winLen,winLen,1),'same');
 %halfwidth
-hwhmFn = @(x) sqrt(2*log(2))*std(x,[],1);
+hwhmFn = @(x) sqrt(2*log(2))*std(x,[],1);  %fullwidth would be x2
 
 %mean windowed nonlinear energy -- teager energy. 
 EnergyNl = @(x) mean(bsxfun(@minus,x(2:end-1,:).^2, x(1:end-2,:).*x(3:end,:)),1);
@@ -320,17 +320,9 @@ if parFlag    %if flag is set do processing in parallel
                                     end
                                     tmpFeat(n,:) = mean(winFeat,1);
                                 case 'hwhm'
-                                    k = 1;
-                                    winFeat = [];
-                                    for goodWin = 1:numOut
-                                        if outLen(goodWin) > 5
-                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
-                                        winFeat(k,:) = hwhmFn(tmp);
-                                        k = k + 1;
-                                        end
-                                    end
-                                    tmpFeat(n,:) = mean(winFeat,1);
-
+                                    y = blockData(startWinPt:endWinPt,1:nChan);
+                                    y(y(:,1) == 0,:) = [];
+                                    tmpFeat(n,:) = hwhmFn(y);
                             end
                         end
                     end
@@ -571,16 +563,9 @@ else          %do normal processing if flag is not set
                                     end
                                     tmpFeat(n,:) = mean(winFeat,1);
                                case 'hwhm'
-                                    k = 1;
-                                    winFeat = [];
-                                    for goodWin = 1:numOut
-                                        if outLen(goodWin) > 5
-                                        tmp = blockData(startT(goodWin):endT(goodWin),1:nChan);
-                                        winFeat(k,:) = hwhmFn(tmp);
-                                        k = k + 1;
-                                        end
-                                    end
-                                    tmpFeat(n,:) = mean(winFeat,1);
+                                    y = blockData(startWinPt:endWinPt,1:nChan);
+                                    y(y(:,1) == 0,:) = [];
+                                    tmpFeat(n,:) = hwhmFn(y);
                             end
                         end
                 end
