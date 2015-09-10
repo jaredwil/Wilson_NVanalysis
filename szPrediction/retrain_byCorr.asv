@@ -1,6 +1,7 @@
 %Jared Wilson 
-%Look at correlation by seizure
-
+%Retrain Sz based on Correlation
+%Find the correlation of the predicted time to sz. for each seizure and see
+%if retraining increases the correlation.
 
 %%
 % clear the workspace and console
@@ -27,6 +28,7 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
     'NVC1001_25_005' 'NVC1001_24_001' 'NVC1001_24_002' 'NVC1001_24_004' ...
     'NVC1001_24_005' 'NVC1001_23_002' 'NVC1001_23_003' 'NVC1001_23_004' ...
     'NVC1001_23_005' 'NVC1001_23_006' 'NVC1001_23_007'};
+
 
 %%
 %begin function
@@ -138,28 +140,128 @@ plot(smooth(predLab,5));
     [numSz,~, uIdx] = unique(allSzLab(:,1),'stable'); 
     
     szCorr = zeros(numel(numSz),1);
-    time = zeros(numel(numSz),1);
-
+    timeDay = zeros(numel(numSz),1);
+    timeSec = zeros(numel(numSz),1);
     for sz = 1:numel(numSz);
 %         szAvg_feat(sz,:) = [mean(allFeat(uIdx == sz,:),1) szTimes(sz,1)];
         szCorr(sz) = corr(allLabs(uIdx == sz),predLab(uIdx == sz));
-        time(sz) = mode(allSzLab(uIdx == sz,1))/60/60/24;
+        timeDay(sz) = mode(allSzLab(uIdx == sz,1))/60/60/24;
+        timeSec(sz) = mode(allSzLab(uIdx == sz,1));
+
     end
-    
+        
+    %visualize what I am doing
     figure(2)
-    plot(time,szCorr*100,'r.','MarkerSize',20)
+    plot(timeDay,szCorr*100,'r.','MarkerSize',20)
     hold on;
     grid on;
     set(gca,'FontSize',12);
     set(gca,'LineWidth',1);
     set(gcf,'position',get(0,'screensize'));
-    vline(time)
+    vline(timeDay)
     vline(szType.szT.test(1)/60/60/24,'b')
+    hline(60,'m');
     ylabel('Correlation (%)')
     xlabel('Time (days)')
     title('Correlation of Predicted Time to Seizure for Each Seizure')
-    plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\szCorrPlots_9-9\' pt{i} 'corrBySz'];
-    savefig(plotName)
-    saveas(gcf,plotName,'jpg')
-    close all;
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+% Original corr by sz has been found now threshold and keep sz's with high
+% correlation then retrain
+
+corrTh = 0.6; %60 percent
+
+corrLab = zeros(size(allLabs));
+isTrain = zeros(size(allLabs));
+for sz = 1:numel(numSz);
+    corrLab(uIdx == sz) = szCorr(sz);                                   %repeat correlation for a label
+    isTrain(uIdx == sz) = sum((timeSec(sz) == szType.szT.train(:,1)));  %sz was orignally trained on
+end
+isTrain = logical(isTrain);
+
+idxTrain = (corrLab > corrTh) & isTrain; %these are the feature idx to train a new model on
+
+retrainFeats  = allFeat(idxTrain,:);
+retrainLabels = allLabs(idxTrain);
+
+%split up for a simple 2 fold CV
+tr = length(retrainLabels)*0.7;
+
+evalFeats = retrainFeats(tr+1:end,:);
+evalLabels = retrainFeats(tr+1:end);
+retrainFeats = retrainFeats(1:tr,:);
+retrainLabels = retrainLabels(1:tr); 
+
+
+tic;
+disp(['Training Lasso Model on Patient: ' pt{i} ' (NO INTERICTAL)'])
+opts = statset('UseParallel',true);  %Do dis shit in parallel!!!  use number of availble workers for CV
+[fLasso, tINFO] = lasso(retrainFeats, retrainLabels,'Options',opts);
+%BOOM!!!
+disp(['DONE Training Lasso Model on Patient: ' pt{i}])
+dzT = tINFO.DF; 
+tInt = tINFO.Intercept;
+% xAlpha = xINFO.Alpha;
+tInt2 = repmat(tInt, size(retrainFeats,1),1);
+utLasso = retrainFeats*fLasso + tInt2;
+tTrain = repmat(retrainLabels,1,100);
+tLasso_coor = corr(tTrain,utLasso);
+tLasso_coor = tLasso_coor(1,:);
+
+figure(11)
+plot(dzT,tLasso_coor*100,'r.');
+xlabel('Number of Non-Zero Feature Weights in Lasso Model')
+ylabel('Resulting Test Correlation (%)')
+title('TRAIN COULD BE MISLEADING')
+grid on;
+hold on;
+h = plot(dzT(minIdx),tLasso_coor(minIdx)*100,'gs','LineWidth',4);
+h = vline(dzT(minIdx),'g:');
+h = plot(dzT(seIdx),tLasso_coor(seIdx)*100,'bs','LineWidth',4);
+h = vline(dzT(seIdx),'b:');
+
+tInt2 = repmat(tInt, size(evalFeats,1),1);
+utLasso = evalFeats*fLasso + tInt2;
+tTrain = repmat(evalLabels,1,100);
+tLasso_coor = corr(tTrain,utLasso);
+tLasso_coor = tLasso_coor(1,:);
+
+figure(12)
+plot(dzT,tLasso_coor*100,'r.');
+xlabel('Number of Non-Zero Feature Weights in Lasso Model')
+ylabel('Resulting Test Correlation (%)')
+title('EVALUATION')
+grid on;
+hold on;
+h = plot(dzT(minIdx),tLasso_coor(minIdx)*100,'gs','LineWidth',4);
+h = vline(dzT(minIdx),'g:');
+h = plot(dzT(seIdx),tLasso_coor(seIdx)*100,'bs','LineWidth',4);
+h = vline(dzT(seIdx),'b:');
+
+minIdx = tINFO.IndexMinMSE;
+seIdx  = tINFO.Index1SE;
+corrIdx = tLasso_coor == max(tLasso_coor);
+
+bestLasso_corr = fLasso(:,corrIdx);
+bestLasso_1SE = fLasso(:,seIdx);
+bestLasso_Min = fLasso(:,minIdx);
+
+bestInt_corr = tInt(corrIdx); 
+bestInt_1SE = tInt(seIdx); 
+bestInt_Min = tInt(minIdx); 
+
+numFeats_corr = dzT(corrIdx); 
+numFeats_1SE = dzT(seIdx); 
+numFeats_Min = dzT(minIdx);
+
+
+
+
+
+    
+%     plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\szCorrPlots_9-9\' pt{i} 'corrBySzretrained'];
+%     savefig(plotName)
+%     saveas(gcf,plotName,'jpg')
+%     close all;
 end

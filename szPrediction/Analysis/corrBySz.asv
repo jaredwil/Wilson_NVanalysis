@@ -158,8 +158,8 @@ plot(smooth(predLab,5));
     ylabel('Correlation (%)')
     xlabel('Time (days)')
     title('Correlation of Predicted Time to Seizure for Each Seizure')
-    plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\szCorrPlots_9-9\' pt{i} 'corrBySz'];
-    savefig(plotName)
-    saveas(gcf,plotName,'jpg')
+    plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\szCorrPlots_9-9\' pt{i} 'corrBySz.fig'];
+    savefig(plotNameg')
+    savefig(plotName,'jpg')
     close all;
 end
