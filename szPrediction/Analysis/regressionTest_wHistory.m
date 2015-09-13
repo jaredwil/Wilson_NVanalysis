@@ -42,13 +42,13 @@ lassoTime = zeros(1,numel(pt));
 %%
 %begin function
 %loop through all pts0
-for i = 12 %numel(pt)  %%%%%TEMPORARY for debug
+for i = 1:numel(pt)  %%%%%TEMPORARY for debug
 close all;
 clear ('h','h1','h2');
     
     
 label = [pt{i} '_szPred_5minFeats.mat'];
-tylabel = [pt{i} '_szTypeLabels.mat'];
+tylabel = [pt{i} '_szTypeLabels5.mat'];
 
 try   
     load(label);
@@ -97,6 +97,8 @@ trainFeats = bsxfun(@rdivide, bsxfun(@minus,trainFeats,avgFeats), stdFeats);
 %ONLY LOOK AT CCS
 trainFeats(trainSzT(:,2)~=1,:) = [];
 trainLabels(trainSzT(:,2)~=1,:) = [];
+testFeats(testSzT(:,2)~=1,:) = [];
+testLabels(testSzT(:,2)~=1,:) = [];
 
 % %Remove UCS
 % trainFeats(trainSzT(:,2)==0,:) = [];
