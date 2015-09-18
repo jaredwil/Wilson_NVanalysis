@@ -32,41 +32,42 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 
 %%%%%%%%%%%%%%%%%%%%%% start par pool%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Establish parpool
-p = gcp('nocreate'); % If no pool, do not create new one.
-if isempty(p)        %if not p will contain all info about current pool;
-    poolsize = 0;
-else
-    poolsize = p.NumWorkers;
-end
-%initialize paralell pool if available
-if(poolsize == 0)
-
-    myCluster = parcluster('local');
-    numWork = myCluster.NumWorkers;
-
-    if(numWork <= 2)  %processing is done on a laptop so don't do it in parallel
-        parpool('local',1)
-        p = gcp('nocreate'); % If no pool, do not create new one.
-        poolsize = p.NumWorkers;
-    elseif(numWork > 10) %limit the number of workers to 6
-        parpool('local',10)
-        p = gcp('nocreate'); % If no pool, do not create new one.
-        poolsize = p.NumWorkers;
-    else  %set up a parallel pool with max number of workers available between 2 and 6
-        parpool(myCluster)
-        p = gcp('nocreate'); % If no pool, do not create new one.
-        poolsize = p.NumWorkers;
-
-    end
-end
+% p = gcp('nocreate'); % If no pool, do not create new one.
+% if isempty(p)        %if not p will contain all info about current pool;
+%     poolsize = 0;
+% else
+%     poolsize = p.NumWorkers;
+% end
+% %initialize paralell pool if available
+% if(poolsize == 0)
+% 
+%     myCluster = parcluster('local');
+%     numWork = myCluster.NumWorkers;
+% 
+%     if(numWork <= 2)  %processing is done on a laptop so don't do it in parallel
+%         parpool('local',1)
+%         p = gcp('nocreate'); % If no pool, do not create new one.
+%         poolsize = p.NumWorkers;
+%     elseif(numWork > 10) %limit the number of workers to 6
+%         parpool('local',10)
+%         p = gcp('nocreate'); % If no pool, do not create new one.
+%         poolsize = p.NumWorkers;
+%     else  %set up a parallel pool with max number of workers available between 2 and 6
+%         parpool(myCluster)
+%         p = gcp('nocreate'); % If no pool, do not create new one.
+%         poolsize = p.NumWorkers;
+% 
+%     end
+% end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 lassoTime = zeros(1,numel(pt));
 %%
 %begin function
 %loop through all pts
-for i = 7%:numel(pt);  %%%%%TEMPORARY for debug
-       
-%     label = [pt{i} '_szPred_30secFeats.mat'];
+for i = 5:numel(pt);  %%%%%TEMPORARY for debug
+     close all;
+
+%   label = [pt{i} '_szPred_30secFeats.mat'];
     label = [pt{i} '_szPred_5minFeats.mat'];
 
     tylabel = [pt{i} '_szTypeLabels5.mat'];
@@ -169,62 +170,153 @@ hold on;
 plot(smooth(predLab,5));
 
 
+    %Create a random label matrix mx1000 where m is the number of labels
+    randLab = rand(length(predLab),1000)*7200;
+    
+
     %average feature across sz do pca then cluster. 
     [numSz,~, uIdx] = unique(allSzLab(:,1),'stable'); 
     
     szCorr = zeros(numel(numSz),1);
-    timeDay = zeros(numel(numSz),1);
-    timeSec = zeros(numel(numSz),1);
+    randCorr = zeros(numel(numSz),1000);
+
+    timeDay   = zeros(numel(numSz),1);
+    timeSec   = zeros(numel(numSz),1);
+    trainSz   = zeros(numel(numSz),1);
+    winDur_sz = zeros(numel(numSz),1);
     for sz = 1:numel(numSz);
-%         szAvg_feat(sz,:) = [mean(allFeat(uIdx == sz,:),1) szTimes(sz,1)];
+        
+        winDur_sz(sz) = length(allLabs(uIdx == sz));
+%       szAvg_feat(sz,:) = [mean(allFeat(uIdx == sz,:),1) szTimes(sz,1)];
         szCorr(sz) = corr(allLabs(uIdx == sz),predLab(uIdx == sz));
+        %random correlation
+        randCorr(sz,:) = corr(allLabs(uIdx == sz),randLab(uIdx == sz,:));
+
+        
         timeDay(sz) = mode(allSzLab(uIdx == sz,1))/60/60/24;
         timeSec(sz) = mode(allSzLab(uIdx == sz,1));
-
-    end
         
+        trainSz(sz) = sum((timeSec(sz) == szType.szT.train(:,1)));
+    end
+    
+    %eliminate sz that do not have many observationsbecause
+    %it messes up the null hypothesis
+    idxElim = (winDur_sz < 6);
+    szCorrHist = szCorr;
+    szCorrHist(idxElim)        = [];
+    randCorr(idxElim,:)    = [];
+    timeDay(idxElim)       = [];
+%     timeSec(idxElim)       = [];
+    trainSz(idxElim)       = [];
+    
+    rCorV = randCorr(:);
+%find corr where p < 0.05
+    tmp = .3:0.0001:.5;
+    pVals = [];
+    for pIdx = 1:length(tmp)
+        pVals(pIdx) = (sum(rCorV > tmp(pIdx))/size(rCorV,1))*100 ;
+    end
+    findp = abs(pVals - 5);
+    [idx idx] = min(findp);
+    corr5 = tmp(idx)
+    
+    figure(22)
+    randCorr = mean(randCorr,2);
+    hist(rCorV,1000);
+    hold on;
+%     corr5 = 0.35517; 
+    p5 = (sum(rCorV > corr5)/size(rCorV,1))*100 
+    vline(corr5,'r:',['p = 0.5, Null Corr = ' num2str(corr5)])
+    
+    %This was found using the below script
+    tmp = .3:0.0001:.4;
+    
+    pVals = [];
+    for pIdx = 1:length(tmp)
+        pVals(pIdx) = (sum(rCorV > tmp(pIdx))/size(rCorV,1))*100 ;
+    end
+
+    
     %visualize what I am doing
     figure(2)
-    plot(timeDay,szCorr*100,'r.','MarkerSize',20)
+    plot(timeDay(trainSz == 1),szCorrHist(trainSz == 1)*100,'b.','MarkerSize',20)  %Test sz
     hold on;
     grid on;
+    plot(timeDay(trainSz ~= 1),szCorrHist(trainSz ~= 1)*100,'r.','MarkerSize',20)  %Test sz
+%     plot(timeDay,randCorr*100,'b*','MarkerSize',20)  %this doesn't really
+%     tell me anything
     set(gca,'FontSize',12);
     set(gca,'LineWidth',1);
     set(gcf,'position',get(0,'screensize'));
     vline(timeDay)
     vline(szType.szT.test(1)/60/60/24,'b')
-    hline(60,'m');
+    hline(corr5*100,'m');
     ylabel('Correlation (%)')
     xlabel('Time (days)')
     title('Correlation of Predicted Time to Seizure for Each Seizure')
+    
+    %only interested in test sz correlation
+    testSzCorr = szCorrHist(trainSz ~= 1);
+%Original HIST
+%make a histogram of the resulting test sz to see how many are better
+%than random with confidence (p < 0.05).
+    %first plot hist or test corr
+    histRes = 20;
+    histBins = linspace(-1,1,histRes);
+    figure(3)
+    [C1, C1x] = hist(testSzCorr,histBins);
+    C1 = C1./sum(C1);
+    bar(C1x,C1)
+    hold on;
+    %plot null distribution for comparison
+    C2x = linspace(-1,1,histRes);
+    C2 = hist(rCorV,histRes);
+    C2 = C2./sum(C2);
+    plot(C2x,C2)
+    vline(corr5,'r:','p = 0.05')
+    xlabel('Test Correlation')
+    ylabel('Density (%)')
+    title('Distribution of Testing Correlations Compared to Null Hypothesis (Original)')
+    legend('Test','Null')
+    xlim([-1 1])
+    histName = ['H:\jaredwil\Lasso Results\retrainStuff\' pt{i} 'histOriginal'];
+    savefig(histName)
+    saveas(gcf,histName,'jpg')
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 % Original corr by sz has been found now threshold and keep sz's with high
 % correlation then retrain
 
-corrTh = 0.6; %60 percent
+corrTh = corr5; %Null Hyptho Test
 
 corrLab = zeros(size(allLabs));
 isTrain = zeros(size(allLabs));
+retrainSz = zeros(numel(numSz),1);
+
+trainSztimes = szType.szT.train(:,1);
+trainSztimes = trainSztimes(1:round(length(trainSztimes) * (0.4/0.7)));  %This reduces the training set from 70% to 30%
 
 for sz = 1:numel(numSz);
     corrLab(uIdx == sz) = szCorr(sz);                                   %repeat correlation for a label
-    isTrain(uIdx == sz) = sum((timeSec(sz) == szType.szT.train(:,1)));  %sz was orignally trained on
+    isTrain(uIdx == sz) = sum((timeSec(sz) == trainSztimes));  %sz was orignally trained on
+    retrainSz(sz) = sum((timeSec(sz) == trainSztimes)) & (szCorr(sz) > corrTh); %the retrain sz index is based on sz corr and time 
 end
-isTrain = logical(isTrain);
 
-idxTrain = (corrLab > corrTh) & isTrain; %these are the feature idx to train a new model on
+%these are the feature idx to train a new model on and it is important to
+%note this because they both are inside the new "training set" and are also
+%withing the correlation threshold for retraining
+idxTrain = (corrLab > corrTh) & isTrain; 
 
 retrainFeats  = allFeat(idxTrain,:);
 retrainLabels = allLabs(idxTrain);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Method Using Lasso Lib
-% numFolds = 5;
+% numFolds = 3;
 % cvIdx    = crossvalind('Kfold', size(retrainLabels,1), numFolds);
 % numLam   = 100;
-% lambda   = linspace(10,1e6,numLam);
+% lambda   = linspace(10,1e4,numLam);
 % 
 % tLasso_coor = zeros(numFolds,numLam);
 % tLasso_MSE  = zeros(numFolds,numLam);
@@ -253,8 +345,6 @@ retrainLabels = allLabs(idxTrain);
 % 
 %     end
 %     parfor_progress(0);
-% 
-% 
 % 
 %     w = cell2mat(w);
 % 
@@ -313,13 +403,8 @@ retrainLabels = allLabs(idxTrain);
 % [bestLasso_Min, ~, ~] = LassoBlockCoordinate(retrainFeats,retrainLabels,lambda(minIdx),'maxIter',50000);
 % 
 % 
-% % bestLasso_corr = w(:,corrIdx);
-% % % bestLasso_1SE = fLasso(:,seIdx);
-% % bestLasso_Min = w(:,minIdx);
-% 
 % numFeats_test = sum(bestLasso_test ~= 0);
 % numFeats_corr = sum(bestLasso_corr ~= 0);
-% % numFeats_1SE = dzT(seIdx); 
 % numFeats_Min = sum(bestLasso_Min ~= 0);
 % 
 % int_test = mean(retrainLabels) -  mean(retrainFeats*bestLasso_test);
@@ -340,6 +425,7 @@ tic;
 disp(['Training Lasso Model on Patient: ' pt{i} ' (NO INTERICTAL)'])
 opts = statset('UseParallel',true);  %Do dis shit in parallel!!!  use number of availble workers for CV
 [fLasso, tINFO] = lasso(retrainFeats, retrainLabels,'CV',5,'Options',opts);
+lassoTime(i) = toc;
 %BOOM!!!
 disp(['DONE Training Lasso Model on Patient: ' pt{i}])
 dzT = tINFO.DF; 
@@ -432,26 +518,56 @@ plot(smooth(predLab,5));
         szCorr(sz) = corr(allLabs(uIdx == sz),predLab(uIdx == sz));
         timeDay(sz) = mode(allSzLab(uIdx == sz,1))/60/60/24;
         timeSec(sz) = mode(allSzLab(uIdx == sz,1));
-
     end
-        
+    
+    %save a struct to look at data later
+    retrainInfo = struct('pred', predLab, 'allLabels',allLabs,'szCorr',szCorr);
+    infoLabel = ['H:\jaredwil\Lasso Results\retrainStuff\' pt{i} 'retrainInfo.mat'];
+    save(infoLabel,'retrainInfo')
+    
+    %RETRAINED HIST
+    %make a histogram of the resulting test sz to see how many are better
+    %than random with confidence (p < 0.05).
+    testSzCorr = szCorr(retrainSz ~= 1);
+    histRes = 20;
+    histBins = linspace(-1,1,histRes);
+    figure(199)
+    [C1, C1x] = hist(testSzCorr,histBins);
+    C1 = C1./sum(C1);
+    bar(C1x,C1)
+    hold on;
+    C2x = linspace(-1,1,histRes);
+    C2 = hist(rCorV,histRes);
+    C2 = C2./sum(C2);
+    plot(C2x,C2)
+    vline(corr5,'r:','p = 0.05')
+    xlabel('Test Correlation')
+    ylabel('Density (%)')
+    title('Distribution of Testing Correlations Compared to Null Hypothesis (RETRAINED)')
+    legend('Test','Null')
+    histName = ['H:\jaredwil\Lasso Results\retrainStuff\' pt{i} 'histRetrained'];
+    savefig(histName)
+    saveas(gcf,histName,'jpg')
+    
+    
     %visualize what I am doing
     figure(200)
-    plot(timeDay,szCorr*100,'r.','MarkerSize',20)
+    plot(timeDay(retrainSz == 1),szCorr(retrainSz == 1)*100,'b.','MarkerSize',20)
     hold on;
     grid on;
+    plot(timeDay(retrainSz ~= 1),szCorr(retrainSz ~= 1)*100,'r.','MarkerSize',20)
     set(gca,'FontSize',12);
     set(gca,'LineWidth',1);
     set(gcf,'position',get(0,'screensize'));
     vline(timeDay)
-    vline(szType.szT.test(1)/60/60/24,'b')
-    hline(60,'m');
+    vline(trainSztimes(end)/60/60/24 + 1,'b','tr/test divide')
+    hline(corr5*100,'m','Null Dist.');
     ylabel('Correlation (%)')
     xlabel('Time (days)')
     title('Correlation of Predicted Time to Seizure for Each Seizure')   
+    legend('Train','Test')
 %     plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\szCorrPlots_9-9\' pt{i} 'corrBySzretrained'];
     plotName = ['H:\jaredwil\Lasso Results\retrainStuff\' pt{i} 'corrBySzretrained'];
     savefig(plotName)
     saveas(gcf,plotName,'jpg')
-%     close all;
 end
