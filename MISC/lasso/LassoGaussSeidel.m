@@ -92,7 +92,7 @@ elseif verbose
     fprintf('Solution Not Found\n');
 end
 if verbose
-fprintf('Number of iterations: %d\nNumber of line minimizations: %d\n',iteration,line_mins);
+% fprintf('Number of iterations: %d\nNumber of line minimizations: %d\n',iteration,line_mins);
 end
 w = alpha;
 end

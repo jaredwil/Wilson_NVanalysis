@@ -38,7 +38,7 @@ lassoTime = zeros(1,numel(pt));
 %%
 %begin function
 %loop through all pts
-for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
+for i = 3%:numel(pt);  %%%%%TEMPORARY for debug
      close all;
 
 %   label = [pt{i} '_szPred_30secFeats.mat'];
@@ -278,7 +278,7 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
     disp(['Training Lasso Model on Patient: ' pt{i} ' (NO INTERICTAL)'])
     lambda   = linspace(10,1e4,numLam);
     numFolds = 3;
-    modCh = 'corr';
+    modCh = 'min';
     [ f, tInt, numFeats, lassoTime(i) ] = trainLassoLib( retrainFeats,retrainLabels,numFolds,lambda, modCh );
 
     disp(['DONE Training Lasso Model on Patient: ' pt{i}])
@@ -317,7 +317,7 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
     plotName = ['H:\jaredwil\Lasso Results\retrainStuff\' pt{i} 'compareResults'];
     saveas(gcf,plotName,'jpg')
     
-    
+
     %average feature across sz do pca then cluster. 
     [numSz,~, uIdx] = unique(allSzLab(:,1),'stable'); 
     

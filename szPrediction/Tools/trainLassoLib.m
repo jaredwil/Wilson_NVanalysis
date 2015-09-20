@@ -2,7 +2,11 @@ function [ f, int, numFeats, solTime ] = trainLassoLib( feats,labels,numFolds,la
 %Train a Lasso Model using external Lasso Library using CV
 %   Detailed explanation goes here
 
-modCh = lower(modCh);
+modCh = lower(modCh); 
+%this choses which model to return
+%   min - min MSE
+%   corr - max correlation
+%   se   - 1 standard deviation away from min MSE
 
 cvIdx    = crossvalind('Kfold', size(labels,1), numFolds);
 numLam   = length(lambda);
@@ -26,7 +30,10 @@ for cvIter = 1:numFolds
     parfor_progress(numLam);
     parfor lam = 1:length(lambda)
         %change this functiion manually if you wish to use a dif method
-        [w{lam}, ~, numIter{lam}] = LassoBlockCoordinate(trainFeatsCV,trainLabelsCV,lambda(lam),'maxIter',50000);
+%         [w{lam}, ~, numIter{lam}] = LassoBlockCoordinate(trainFeatsCV,trainLabelsCV,lambda(lam),'maxIter',50000);
+
+        [w{lam}, ~, numIter{lam}] = LassoIteratedRidge(trainFeatsCV,trainLabelsCV,lambda(lam),'maxIter',50000);
+
         parfor_progress;
     end
     parfor_progress(0);
@@ -64,6 +71,7 @@ errorbar(lambda, tLasso_MSE,stdMSE,'r.-')
 % seIdx  = tINFO.Index1SE;
 corrIdx = tLasso_coor == max(tLasso_coor);
 minIdx = tLasso_MSE == min(tLasso_MSE);
+testIdx = (tLasso_MSE - stdMSE) == min(tLasso_MSE - stdMSE);
 
 figure(102)
 title('Number of Non-Zero Features vs Resulting Correlation')
@@ -80,11 +88,9 @@ h = vline(dzT(minIdx),'g:');
 % plotName = ['H:\jaredwil\Lasso Results\' pt{i} '_corrRes'];
 % saveas(h,plotName,'jpg')
 
-testIdx = 53;
-
-[bestLasso_test, ~, ~] = LassoBlockCoordinate(feats,labels,lambda(testIdx),'maxIter',50000);
-[bestLasso_corr, ~, ~] = LassoBlockCoordinate(feats,labels,lambda(corrIdx),'maxIter',50000);
-[bestLasso_Min, ~, ~] = LassoBlockCoordinate(feats,labels,lambda(minIdx),'maxIter',50000);
+[bestLasso_test, ~, ~] = LassoIteratedRidge(feats,labels,lambda(testIdx),'maxIter',50000);
+[bestLasso_corr, ~, ~] = LassoIteratedRidge(feats,labels,lambda(corrIdx),'maxIter',50000);
+[bestLasso_Min, ~, ~] = LassoIteratedRidge(feats,labels,lambda(minIdx),'maxIter',50000);
 
 
 numFeats_test = sum(bestLasso_test ~= 0);
