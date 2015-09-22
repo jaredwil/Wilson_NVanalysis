@@ -122,13 +122,15 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
 
     %Create a random label matrix mx1000 where m is the number of labels
     randLab = rand(length(predLabOrg),1000)*7200;
-    
+    permLab = rand(length(predLabOrg),1000)*7200;
+
 
     %average feature across sz do pca then cluster. 
     [numSz,~, uIdx] = unique(allSzLab(:,1),'stable'); 
     
     szCorr = zeros(numel(numSz),1);
-    randCorr = zeros(numel(numSz),1000);
+    randCorr = zeros(numel(numSz),1000);  %correlation of random lables
+    permCorr = zeros(numel(numSz),1000);  %correlation of permuted pred lables
 
     timeDay   = zeros(numel(numSz),1);
     timeSec   = zeros(numel(numSz),1);
@@ -137,11 +139,21 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
     for sz = 1:numel(numSz);
         
         winDur_sz(sz) = length(allLabs(uIdx == sz));
+        
+        %create permutation labels rather than random labels
+        for permIt = 1:1000
+            tmp = predLabOrg(uIdx == sz);
+            permord = randperm(winDur_sz(sz));
+            permLab(uIdx == sz,permIt) = tmp(permord);
+        end
+        
 %       szAvg_feat(sz,:) = [mean(allFeat(uIdx == sz,:),1) szTimes(sz,1)];
         szCorr(sz) = corr(allLabs(uIdx == sz),predLabOrg(uIdx == sz));
         %random correlation
         randCorr(sz,:) = corr(allLabs(uIdx == sz),randLab(uIdx == sz,:));
-
+        %permuted predicted labels for each sz rather than random
+        %generation
+        permCorr(sz,:) = corr(allLabs(uIdx == sz),permLab(uIdx == sz,:));
         
         timeDay(sz) = mode(allSzLab(uIdx == sz,1))/60/60/24;
         timeSec(sz) = mode(allSzLab(uIdx == sz,1));
@@ -151,15 +163,23 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
     
     %eliminate sz that do not have many observationsbecause
     %it messes up the null hypothesis
-    idxElim = (winDur_sz < 6);
+    % this does two things not really sure if I should be doing both at the
+    % same time The first part eliminates short sz to remove false high sz
+    % correlations, the second eliminates sz in the first 15 days. Features
+    % Normalization
+    idxElim = (winDur_sz < 6) | (timeDay < 15);  
     szCorrHist = szCorr;
     szCorrHist(idxElim)        = [];
     randCorr(idxElim,:)    = [];
+    permCorr(idxElim,:)    = [];
+
     timeDay(idxElim)       = [];
 %     timeSec(idxElim)       = [];
     trainSz(idxElim)       = [];
     
-    rCorV = randCorr(:);
+%     rCorV = randCorr(:);
+    rCorV = permCorr(:);
+
 %find corr where p < 0.05
     tmp = .3:0.0001:.5;
     pVals = [];
@@ -199,7 +219,7 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
     set(gca,'LineWidth',1);
     set(gcf,'position',get(0,'screensize'));
     vline(timeDay)
-    vline(szType.szT.test(1)/60/60/24,'b')
+    vline(szType.szT.test(1)/60/60/24,'b','Tr/Tst Divide')
     hline(corr5*100,'m');
     ylabel('Correlation (%)')
     xlabel('Time (days)')
@@ -246,16 +266,30 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
     retrainSz = zeros(numel(numSz),1);
 
     trainSztimes = szType.szT.train(:,1);
-    trainSztimes = trainSztimes(trainSz == 1);
-    
+%     trainSztimes = trainSztimes(trainSz == 1);
+%     trainSztimes(trainSz == 1) = 0;
+
     testSztimes = szType.szT.test(:,1);
     % trainSztimes = trainSztimes(1:round(length(trainSztimes) * (0.4/0.7)));  %This reduces the training set from 70% to 30%
 
     for sz = 1:numel(numSz);
         corrLab(uIdx == sz) = szCorr(sz);                                   %repeat correlation for a label
         isTrain(uIdx == sz) = sum((timeSec(sz) == trainSztimes));  %sz was orignally trained on
-        retrainSz(sz) = sum((timeSec(sz) == trainSztimes)) & (szCorr(sz) > corrTh); %the retrain sz index is based on sz corr and time 
+        retrainSz(sz) = any((timeSec(sz) == trainSztimes)) & (szCorr(sz) > corrTh); %the retrain sz index is based on sz corr and time 
     end
+    
+    retrainSz(idxElim) = [];
+    figure(2000)
+    plot(timeDay(retrainSz == 1),szCorrHist(retrainSz == 1)*100,'b.','MarkerSize',20)  %Test sz
+    hold on;
+    grid on;
+    plot(timeDay(retrainSz ~= 1),szCorrHist(retrainSz ~= 1)*100,'r.','MarkerSize',20)  %Test sz
+    title('Retraining Distribution')
+    vline(15, 'm', 'Day 15')
+    vline(timeDay)
+    vline(szType.szT.test(1)/60/60/24,'b','tr/tst')
+    hline(corr5*100,'m');
+    legend('Retrain','Not Retrain')
 
     %these are the feature idx to train a new model on and it is important to
     %note this because they both are inside the new "training set" and are also
@@ -276,9 +310,10 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Method Using Lasso Lib
     disp(['Training Lasso Model on Patient: ' pt{i} ' (NO INTERICTAL)'])
-    lambda   = linspace(10,1e4,numLam);
+%     lambda   = linspace(1e4,1e6,numLam);
+    lambda   = logspace(5,7,numLam);
     numFolds = 3;
-    modCh = 'corr';
+    modCh = 'min';
     [ f, tInt, numFeats, lassoTime(i) ] = trainLassoLib( retrainFeats,retrainLabels,numFolds,lambda, modCh );
 
     disp(['DONE Training Lasso Model on Patient: ' pt{i}])
@@ -308,8 +343,8 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
     figure(100)
     plot(allLabs);
     hold on;
-    plot(smooth(predRe,5));
     plot(smooth(predLabOrg,5));
+    plot(smooth(predRe,5));
     xlabel('Time (kinda)')
     ylabel('Time to Seizure (seconds)')
     legend('True','Original','Retrained')
@@ -330,6 +365,10 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
         timeDay(sz) = mode(allSzLab(uIdx == sz,1))/60/60/24;
         timeSec(sz) = mode(allSzLab(uIdx == sz,1));
     end
+    %eliminate the same sz as before
+%     szCorrHist = szCorr;
+    szCorr(idxElim)        = [];
+    timeDay(idxElim)       = [];
     
     %save a struct to look at data later
     retrainInfo = struct('pred', predRe, 'allLabels',allLabs,'szCorr',szCorr, 'f',f,'tInt',tInt);
@@ -339,7 +378,8 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
     %RETRAINED HIST
     %make a histogram of the resulting test sz to see how many are better
     %than random with confidence (p < 0.05).
-    testSzCorr = szCorr(retrainSz ~= 1);
+    %only make a histogram of the sz not retrained on & in test sz range
+    testSzCorr = szCorr(retrainSz ~= 1 & (timeDay > szType.szT.train(end,1)/60/60/24));
     histRes = 20;
     histBins = linspace(-1,1,histRes);
     figure(199)
