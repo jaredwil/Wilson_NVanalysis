@@ -21,7 +21,8 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
     'NVC1001_23_005' 'NVC1001_23_006' 'NVC1001_23_007'};
 
 featInfo_all = zeros(numel(pt),14);
-
+featInfo_ind = zeros(numel(pt),14);
+chInfo_all   = zeros(numel(pt),16);
 %%
 %begin function
 %loop through all pts
@@ -32,7 +33,7 @@ for i = 1:numel(pt);
 
     try   
         load(featLab);
-
+        
     catch
         disp('This pt. does not have a save .mat to load from')
         continue;
@@ -64,7 +65,10 @@ for i = 1:numel(pt);
         nnz(gamma) nnz(theta) nnz(fxskew) nnz(fxkurt) nnz(psdCorr) nnz(fycorr) ...
         nnz(fycov) nnz(HFD)];
     
-    featInfo_all(i,:) = numNotZero;
+    featLens = [16 16 16 16 16 16 16 16 16 16 120 120 120 16];
+    featInfo_ind(i,:) = bsxfun(@rdivide, numNotZero, featLens);
+    featInfo_all(i,:) = numNotZero./sum(numNotZero);
+
 
     %is there a way to find out which channels contain important information
     %for regression????
@@ -72,9 +76,9 @@ for i = 1:numel(pt);
     %this is a bit more challenging.
     rowCh = [];
     colCh = [];
-    for i = 1:15
-        rowCh = [rowCh 1:i];
-        colCh = [colCh ones(1,i)*(i+1)];
+    for j = 1:15
+        rowCh = [rowCh 1:j];
+        colCh = [colCh ones(1,j)*(j+1)];
     end
 
     totCh = rowCh | colCh;
@@ -89,10 +93,41 @@ for i = 1:numel(pt);
             fycov(chIdx)' HFD(ch)];
         chNotZero(ch) = nnz(chFeat);
     end
+    
+    chInfo_all(i,:) = chNotZero./sum(numNotZero);
 
 
 end
 
 
 %plot some stuff
-plotnumeric(featInfo_all);
+figure(1)
+plotfeatInfo(featInfo_all*100);
+title('Precent of Weights Associated with Feature')
+% set(gcf,'Position',get(0,'Screensize')); 
+plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\Meeting Results 9-20\featInfo'];
+saveas(gcf,plotName,'jpg')
+set(gca,'FontSize',10);
+set(gca,'LineWidth',2);
+
+figure(2)
+plotfeatInfo(featInfo_ind*100);
+title('Precent of Non-Zero Weight for every Feature ')
+% set(gcf,'Position',get(0,'Screensize')); 
+% set(gca,'FontSize',15);
+% set(gca,'LineWidth',2);
+plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\Meeting Results 9-20\featInfo2'];
+saveas(gcf,plotName,'jpg')
+set(gca,'FontSize',10);
+set(gca,'LineWidth',2);
+
+figure(3)
+plotchannelInfo(chInfo_all*100);
+title('Percent of Weights Associated with Each Channel')
+% set(gcf,'Position',get(0,'Screensize')); 
+% set(gca,'FontSize',15);
+% set(gca,'LineWidth',2);
+plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\Meeting Results 9-20\chInfo'];
+saveas(gcf,plotName,'jpg')
+set(gca,'FontSize',10);
+set(gca,'LineWidth',2);
