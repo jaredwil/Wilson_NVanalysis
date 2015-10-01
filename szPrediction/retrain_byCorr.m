@@ -38,7 +38,7 @@ lassoTime = zeros(1,numel(pt));
 %%
 %begin function
 %loop through all pts
-for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
+for i = 6%1:numel(pt);  %%%%%TEMPORARY for debug
      close all;
 
 %   label = [pt{i} '_szPred_30secFeats.mat'];
@@ -310,12 +310,17 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Method Using Lasso Lib
     disp(['Training Lasso Model on Patient: ' pt{i} ' (NO INTERICTAL)'])
-%     lambda   = linspace(1e4,1e6,numLam);
-    lambda   = logspace(5,7,numLam);
+    lambda   = linspace(1e4,1e6,numLam);
+%   lambda   = logspace(4,6,numLam);
+    numFolds = 10;
     numFolds = 3;
-    modCh = 'min';
-    [ f, tInt, numFeats, lassoTime(i) ] = trainLassoLib( retrainFeats,retrainLabels,numFolds,lambda, modCh );
-
+    modCh = 'se';
+    try
+        [ f, tInt, numFeats, solnLambda, lassoTime(i) ] = trainLassoLib( retrainFeats,retrainLabels,numFolds,lambda, modCh, pt{i});
+    catch
+        disp('Could Not Find Solution')
+    end
+    
     disp(['DONE Training Lasso Model on Patient: ' pt{i}])
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
@@ -371,7 +376,7 @@ for i = 6%:numel(pt);  %%%%%TEMPORARY for debug
     timeDay(idxElim)       = [];
     
     %save a struct to look at data later
-    retrainInfo = struct('pred', predRe, 'allLabels',allLabs,'szCorr',szCorr, 'f',f,'tInt',tInt);
+    retrainInfo = struct('pred', predRe, 'allLabels',allLabs,'szCorr',szCorr, 'f',f,'tInt',tInt,'lambda',solnLambda);
     infoLabel = ['H:\jaredwil\Lasso Results\retrainStuff\' pt{i} 'retrainInfoLib.mat'];
     save(infoLabel,'retrainInfo')
     

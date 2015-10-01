@@ -1,4 +1,4 @@
-function [ f, int, numFeats, solTime ] = trainLassoLib( feats,labels,numFolds,lambda, modCh )
+function [ f, int, numFeats, solnLambda, solTime ] = trainLassoLib( feats,labels,numFolds,lambda, modCh, pt)
 %Train a Lasso Model using external Lasso Library using CV
 %   Detailed explanation goes here
 
@@ -64,14 +64,31 @@ tLasso_MSE = mean(tLasso_MSE,1);
 
 tLasso_coor = mean(tLasso_coor,1);
 
-figure(101)
-errorbar(lambda, tLasso_MSE,stdMSE,'r.-')
 
 % minIdx = tINFO.IndexMinMSE;
 % seIdx  = tINFO.Index1SE;
 corrIdx = tLasso_coor == max(tLasso_coor);
 minIdx = tLasso_MSE == min(tLasso_MSE);
 testIdx = (tLasso_MSE - stdMSE) == min(tLasso_MSE - stdMSE);
+
+figure(101)
+hold on;
+grid on;
+xlabel('MSE')
+ylabel('\lambda')
+title('MSE vs lambda')
+plot(lambda(minIdx),tLasso_MSE(minIdx),'gs','LineWidth',4);
+vline(lambda(minIdx),'g:');
+plot(lambda(corrIdx),tLasso_MSE(corrIdx),'bs','LineWidth',4);
+vline(lambda(corrIdx),'b:');
+plot(lambda(testIdx),tLasso_MSE(testIdx),'ms','LineWidth',4);
+vline(lambda(testIdx),'m:');
+errorbar(lambda, tLasso_MSE,stdMSE,'r.-')
+% set(gca,'XScale','log');
+legend('Min MSE','Max Corr','1SE')
+plotName = [pt '_mseLib'];
+saveas(gcf,plotName,'jpg')
+
 
 figure(102)
 title('Number of Non-Zero Features vs Resulting Correlation')
@@ -87,8 +104,10 @@ h = plot(lambda(corrIdx),tLasso_coor(corrIdx)*100,'bs','LineWidth',4);
 h = vline(lambda(corrIdx),'b:');
 h = plot(lambda(testIdx),tLasso_coor(testIdx)*100,'ms','LineWidth',4);
 h = vline(lambda(testIdx),'m:');
-% plotName = ['H:\jaredwil\Lasso Results\' pt{i} '_corrRes'];
-% saveas(h,plotName,'jpg')
+% set(gca,'XScale','log');
+plotName = [pt '_corrLib'];
+saveas(h,plotName,'jpg')
+
 
 [bestLasso_test, ~, ~] = LassoBlockCoordinate(feats,labels,lambda(testIdx),'maxIter',50000);
 [bestLasso_corr, ~, ~] = LassoBlockCoordinate(feats,labels,lambda(corrIdx),'maxIter',50000);
@@ -108,14 +127,19 @@ switch modCh
         f = bestLasso_corr;
         int = int_corr;
         numFeats = numFeats_corr;
+        solnLambda = lambda(corrIdx); 
     case 'min'
         f = bestLasso_Min;
         int = int_Min;
-        numFeats = numFeats_Min;        
+        numFeats = numFeats_Min;
+        solnLambda = lambda(minIdx); 
+
     case 'se'
         f = bestLasso_test;
         int = int_test;
-        numFeats = numFeats_test;       
+        numFeats = numFeats_test;  
+        solnLambda = lambda(testIdx); 
+
 end
 
 
