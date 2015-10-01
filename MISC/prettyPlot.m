@@ -60,6 +60,19 @@ ax.YLim = [-100 20];
 xlabel('Frequency (Hz)')
 ylabel('Phase (degrees)')
 
+
+%Other useful commands
+
+%make plot size of screen
+
+% set(gca,'FontSize',15);
+% set(gca,'LineWidth',2);
+% set(gcf,'Position',get(0,'Screensize')); 
+% %make background white
+% 
+% set(gcf,'Color','w');
+
+
 %now all other plots will be so totally jelly of your plot... so jelly they
 %will be jam possibly even preservatives. 
 % 

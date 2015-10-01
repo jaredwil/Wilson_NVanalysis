@@ -1,4 +1,4 @@
-function [] = plotfeatInfo(X, varargin)
+function [] = plotchannelInfo(X, varargin)
 % Plots a matrix with numeric values.
 
 clim = [min(X(:)) max(X(:))];
@@ -10,10 +10,10 @@ c = size(X,2);
 imagesc(X, clim);
 colormap(autumn);
 ylabel('Patient')
-xlabel('Feature')
+xlabel('Channel')
 set(gca,'XTick',linspace(1,c,c),'YTick',linspace(1,r,r));
 ax = gca;
-ax.XTickLabel = {'Amp','LL','NLenergy','Alpha','Beta','Delta','Gamma','Theta' 'fxskew' 'fxkurt' 'PSDcorr' 'fycorr' 'fycov' 'HFD'};
+% ax.XTickLabel = {'Amp','LL','NLenergy','Alpha','Beta','Delta','Gamma','Theta' 'fxskew' 'fxkurt' 'PSDcorr' 'fycorr' 'fycov' 'HFD'};
 
 % feats = [Amp LL nlEng alpha beta delta gamma theta fxskew fxkurt psdCorr fycorr fycov HFD];
 
