@@ -26,9 +26,29 @@ This demo file is a little more abstract and messy, read through it if you desir
 ###Want to get more feature vectors to test model???
 A pipeline is established to do this that uses the code found int szPrediction\Pipeline. A brief overiew of each function is provided below (additional comments and documentation are provided in functions): <br />
 <br />
+**FeatExt.m**  <br />
+function [ feats ] = FeatExt( y , fs)  <br />
+Input to this function is a time window y and sampling freq (fs). Output is array of features extracted in function.  <br />
 
+**getSzFeats.m** <br />
+[trainFeats, predIdx] = getSzFeats(ptSession, szStartT, szEndT, szHorizon, winLen, winDisp) <br />
+This function takes in the current patient iEEG session and extracts windowed features based on winLen and winDisp entered by the user. Features are only extracted from times that are within the determined szHorizon (entered by user) and the seizure start times (szStartT). <br />
 
+**getSzTime.m** <br />
+[ startT, endT ] = getSzTime(ptSession)  <br />
+Get ALL seizure start times from the pt of interest. The seizure start times are extracted from the annotation layers. All layers containing "seizure" are extracted.
 
+**szPred_train.m**/**szPred_trainNOint.m**  -- variation that doesn't retrieve interictal data <br />
+[trainFeats, trainLabels ] = szPred_test(pt, usernm, pswdBin, trPct, winLen, winDisp, szHorizon  )  <br />
+szPred_train takes the current pt and retrieves the trainFeats and trainLabels based on the inputs provided by the user. The szHorizon defines the 'preictal' phase where features will be extracted from all lables that are larger than the defined szHorizon are interictal feature vectors. (NOint version does not get interictal data)  <br />
+
+**szPred_test.m**/**szPred_testNOint.m**  -- variation that doesn't retrieve interictal data <br />
+[ testFeats, testLabels ] = szPred_test(pt, usernm, pswdBin, trPct, winLen, winDisp, szHorizon  )
+szPred_test takes the current pt and retrieves the testFeats and testLabels based on the inputs provided by the user. The szHorizon defines the 'preictal' phase where features will be extracted from all lables that are larger than the defined szHorizon are interictal feature vectors. (NOint version does not get interictal data)  <br />
+
+**test_interPar.m**/**train_interPar.m** --does the same thing just gets interictal data from either side of train/test divide <br />
+[ interFeats ] = test_interPar( ptSession, szpredIdx, winLen, winDisp, Nlim ) <br />
+This function is used to extract interictal data from the NV patient data to be trained on for interictal classification. The times that included sz and szpred Horizon are inputs to be skipped when searching for valid interictal data.
 
 
 
