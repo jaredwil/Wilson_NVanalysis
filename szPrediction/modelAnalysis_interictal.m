@@ -11,8 +11,8 @@ addpath(genpath('ieeg-matlab-1.8.3'))
 addpath(genpath('Wilson_NVanalysis'))
 % addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data'))  %this is where .mat file are contained on local comp
 % addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\30secFeats'))  %this is where .mat file are contained on local comp
-addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\5minFeats'))  %this is where .mat file are contained on local comp
-% addpath(genpath('H:\jaredwil\szPred_feats\Win_5min'))  %this is where .mat file are contained on local comp
+% addpath(genpath('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\5minFeats'))  %this is where .mat file are contained on local comp
+addpath(genpath('H:\jaredwil\szPred_feats\Win_5min'))  %this is where .mat file are contained on local comp
 
 set(0,'DefaultTextInterpreter','none');
 %%
@@ -33,7 +33,7 @@ pt = {'NVC1001_25_001' 'NVC1001_25_002' 'NVC1001_25_004' ...
 %%
 %begin function
 %loop through all pts
-for i = 1:numel(pt);  %%%%%TEMPORARY for debug
+for i = 10%11:numel(pt);  %%%%%TEMPORARY for debug
     close all;
 
 %   label = [pt{i} '_szPred_30secFeats.mat'];
@@ -49,6 +49,8 @@ for i = 1:numel(pt);  %%%%%TEMPORARY for debug
         continue;
 
     end
+    session = IEEGSession(pt{i},'jaredwil','jar_ieeglogin.bin') ;
+    fs = session.data.sampleRate;               %Find sampling Rate
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% get feature data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     train   = data.train;
     test    = data.test;
@@ -95,8 +97,8 @@ for i = 1:numel(pt);  %%%%%TEMPORARY for debug
     %load feature weights
     % load('C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\resultsV1\NVC1001_23_005_bestLasso_CCS.mat')
 
-    featLab = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Res LassoLib\' pt{i} '_bestLasso5.mat'];
-%     featLab = ['H:\jaredwil\Lasso Results\Res 8-29\' pt{i} '_bestLasso5.mat'];
+%     featLab = ['C:\Users\Jared\Dropbox\NVanalysis_data\SzPred_data\Res LassoLib\' pt{i} '_bestLasso5.mat'];
+    featLab = ['H:\jaredwil\Lasso Results\Res 8-29\' pt{i} '_bestLasso5.mat'];
 
     load(featLab);
 
@@ -144,7 +146,7 @@ for i = 1:numel(pt);  %%%%%TEMPORARY for debug
     
 % Original corr by sz has been found now threshold and keep sz's with high
 % correlation and plot results
-    corrTh = .65; %Null Hyptho Test
+    corrTh = .60; 
 
     corrLab = zeros(size(allLabs));
     isTest = zeros(size(allLabs));
@@ -154,12 +156,11 @@ for i = 1:numel(pt);  %%%%%TEMPORARY for debug
     trainSztimes = trainSztimes(trainSz == 1);
     
     testSztimes = szType.szT.test(:,1);
-    % trainSztimes = trainSztimes(1:round(length(trainSztimes) * (0.4/0.7)));  %This reduces the training set from 70% to 30%
-
+    goodSz_test = zeros(numel(numSz),1);
     for sz = 1:numel(numSz);
         corrLab(uIdx == sz) = szCorr(sz);                                   %repeat correlation for a label
         isTest(uIdx == sz) = (sum((timeSec(sz) == testSztimes)));  %sz was orignally trained on
-%         retrainSz(sz) = sum((timeSec(sz) == trainSztimes)) & (szCorr(sz) > corrTh); %the retrain sz index is based on sz corr and time 
+        goodSz_test(sz) = timeSec(sz);
     end
 
     %these are the feature idx to train a new model on and it is important to
@@ -167,29 +168,141 @@ for i = 1:numel(pt);  %%%%%TEMPORARY for debug
     %withing the correlation threshold for retraining
     idxplotTest = (corrLab > corrTh) & isTest; 
 
-    plotFeats  = allFeat(idxplotTest,:);
+    plotFeats      = allFeat(idxplotTest,:);
     plotTestLabels = allLabs(idxplotTest);
-    plotPred = predLabOrg(idxplotTest);
+    plotPred       = predLabOrg(idxplotTest);
+    
+    intTest_szLabels = allSzLab(idxplotTest,:);
+    
+    [szStartT] = unique(intTest_szLabels(:,1));
+    szEndT     =  szStartT + 30;  %assume sz is about 30 seconds long this
+                                    %is an assumption made cause figuring 
+                                    %out exact time would take a long time
+    szHorizon = 48; %hours doing this to test interictal data
+    winLen = 5*60;
+    winDisp = 5*60;
+    
+    if(isempty(szStartT))
+        continue;  %mosey along in the for loop if there are no good sz
+    end
+    [extFeats, ~] = getSzFeats(session, szStartT, szEndT, szHorizon, winLen, winDisp);
+    %save the extFeats
+    matName = ['H:\jaredwil\Lasso Results\szHorizon_test\' pt{i} '_szFeats.mat'];
+    save(matName,'extFeats')
+    
+    
+    testInt_lables = extFeats(:,1);
+    
+    testInt_feats =  extFeats(:,2:end);
+    testInt_feats = bsxfun(@rdivide, bsxfun(@minus,testInt_feats,avgFeats), stdFeats); %NORMALIZE!!!
+    tInt2 = repmat(tInt, size(testInt_feats,1),1);
+
+    %make prediction and plot
+    intPred = testInt_feats*f + tInt2;
+    
     
     %visual assesment
-    time5 = linspace(5,length(plotPred)*5,length(plotPred))/60;
+    time5 = linspace(5,length(intPred)*5,length(intPred))/60;
+    
     figure(1)
     set(gca,'FontSize',15);
     set(gca,'LineWidth',2);
     set(gcf,'Position',get(0,'Screensize')); 
     %make background white
     set(gcf,'Color','w');
-    plot(time5, plotTestLabels/60/60);
+    plot(time5, testInt_lables/60/60);
     hold on;
-    plot(time5, smooth(plotPred/60/60,5));
+    plot(time5, smooth(intPred/60/60,5));
 %     title(['Time to Seizure Visualization of Predictions with Better Than Random Corr.: pt. ' pt{i}])
-    title(['Time to Seizure Visualization of Predictions with Corr. > 65%: pt. ' pt{i}])
+    title(['Testing Model Beyond 2 Hour Trained Seizure Horizon: pt. ' pt{i}])
 
     xlabel('Time (Hours)')
     ylabel('Time to Seizure (Hours)')
     legend('Test','Prediction','location','best')
-    plotName = ['C:\Users\Jared\Dropbox\NVanalysis_data\Meeting Results 9-20\' pt{i} 'highCorr_Results'];
+    plotName = ['H:\jaredwil\Lasso Results\szHorizon_test\' pt{i} '_plotResults'];
     saveas(gcf,plotName,'jpg')
     savefig(gcf,plotName)
+    
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%ALL  THIS STUFF IS JUST FOR MAKING PLOTS FOR PREZENTATIONS!
+    %plot each individual sz
+    [~,testSzIdx] = findpeaks(testInt_lables);
+
+    %the first index is alwasy a start time of sz
+%     testSzIdx = [1; testSzIdx];
+    szEndIdx = [testSzIdx-1];
+
+szPlotDur = 40*12-1; %number of windows 
+%create train labels
+szLabels = cell(length(szEndIdx+1),1);
+predLabels = cell(length(szEndIdx+1),1);
+for sz = 1:(length(szEndIdx)+1)
+    if(sz == (length(szEndIdx)+1))
+        szLabels{sz} = testInt_lables(end-szPlotDur:end);
+        predLabels{sz} = intPred(end-szPlotDur:end);
+    else
+        szLabels{sz} = testInt_lables(szEndIdx(sz)-szPlotDur:szEndIdx(sz));
+        predLabels{sz} = intPred(szEndIdx(sz)-szPlotDur:szEndIdx(sz));
+    end
+
+end
+    
+
+
+%subplot
+for sz = 1:(length(szEndIdx)+1)
+    figure(10)
+    
+    subplot(length(szEndIdx)+1,1,sz)
+    
+    time5 = 0-(szLabels{sz}/60/60);
+     set(gca,'FontSize',15);
+    set(gca,'LineWidth',2);
+    set(gcf,'Position',get(0,'Screensize')); 
+    %make background white
+    set(gcf,'Color','w');
+    plot(time5, szLabels{sz}/60/60,'linewidth',2);
+    hold on;
+    plot(time5, smooth(predLabels{sz}/60/60,5),'linewidth',2);
+%     title(['Time to Seizure Visualization of Predictions with Better Than Random Corr.: pt. ' pt{i}])
+    suptitle(['Testing Model Beyond 2 Hour Trained Seizure Horizon: pt. ' pt{i}])
+    xlabel('Time (Hours)')
+    ylabel('Time to Seizure (Hours)')
+%     legend('Test','Prediction','location','best')
+    axis([-30 0 0 2])
+    plotName = ['H:\jaredwil\Lasso Results\szHorizon_test\' pt{i} 'subplotResults6hr'];
+    saveas(gcf,plotName,'jpg')
+%     savefig(gcf,plotName)
+    
+end
+    
+
+%Individual Plots
+%    for sz = 1:(length(szEndIdx)+1)
+%     figure(100+sz)
+%     
+%     time5 = 0-(szLabels{sz}/60/60);
+%      set(gca,'FontSize',15);
+%     set(gca,'LineWidth',2);
+%     set(gcf,'Position',get(0,'Screensize')); 
+%     %make background white
+%     set(gcf,'Color','w');
+%     plot(time5, szLabels{sz}/60/60);
+%     hold on;
+%     plot(time5, smooth(predLabels{sz}/60/60,5));
+% %     title(['Time to Seizure Visualization of Predictions with Better Than Random Corr.: pt. ' pt{i}])
+%     title(['Testing Model Beyond 2 Hour Trained Seizure Horizon: pt. ' pt{i} ' Sz.' num2str(sz)])
+%     xlabel('Time (Hours)')
+%     ylabel('Time to Seizure (Hours)')
+%     legend('Test','Prediction','location','best')
+%     axis([min(time5) max(time5) 0 2])
+%     plotName = ['H:\jaredwil\Lasso Results\szHorizon_test\' pt{i} '_Sz.' num2str(sz) 'Results'];
+%     saveas(gcf,plotName,'jpg')
+% %     savefig(gcf,plotName)
+%     
+% end 
+    
+    
     
 end

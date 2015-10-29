@@ -5,7 +5,7 @@
 %    
 %   0 - UCS (other electrical abnormality)
 %   1 - CCS (clinically confirmed)
-%   2 - CES (electricaly confirmed Sz)????
+%   2 - CES 
 %   3 - NCS (not reported clinical Sz)
 %
 %%

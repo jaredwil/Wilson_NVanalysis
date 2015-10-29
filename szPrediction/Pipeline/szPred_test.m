@@ -1,6 +1,6 @@
 function [ testFeats, testLabels ] = szPred_test(pt, usernm, pswdBin, trPct, winLen, winDisp, szHorizon  )
 %[ trainFeats, trainLabels ] = szPred_test(pt, usernm, pswdBin, trPct, winLen, winDisp, szHorizon  )
-%   szPred_train takes the current pt and retrieves the trainFeats and
+%   szPred_test takes the current pt and retrieves the trainFeats and
 %   trainLabels based on the inputs provided by the user. The szHorizon
 %   defines the 'preictal' phase where features will be extracted from all
 %   lables that are larger than the defined szHorizon are interictal
@@ -18,10 +18,10 @@ function [ testFeats, testLabels ] = szPred_test(pt, usernm, pswdBin, trPct, win
 %       to Liturature for suggested values range: 30min - 2 hrs). 
 %
 %Output:
-%      trainFeats - M x N matrix where M is the number of observations and
+%      testFeats - M x N matrix where M is the number of observations and
 %      N is the number of features extracted from each time window defined
 %      by winLen and winDisp
-%      trainLabels - M x 1 matrix containing the corrosponding lables to
+%      testLabels - M x 1 matrix containing the corrosponding lables to
 %      observations in trainFeats. Labels are time to sz in minuites.
 %%
 

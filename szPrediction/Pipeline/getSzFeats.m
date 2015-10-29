@@ -86,10 +86,16 @@ szEndT = [0; szEndT];
 parfor_progress(numSz);
 
 warning('off');
-parfor sz = 1:numSz
+for sz = 1:numSz
     warning('off');
     parSession = IEEGSession(datasetFN,username,pswd); %start session on worker
     
+    fs = parSession.data.sampleRate;
+    blockLenSecs = 60*60; %block length to be extracted at a time (in seconds)
+%     numWins = CalcNumWins(blockLenSecs*fs,fs,winLen,winDisp); %number of windows per block
+    
+
+
     horizStart = szStartT(sz) - szHorizon*3600; %compute the horizon start time1
 
     %compute buffered end time of prior seizure to ensure they don't
@@ -103,26 +109,34 @@ parfor sz = 1:numSz
     
     if(horizStart > szStartT(sz))
         %skip this sz
-        %might need to fill this sell with something?
+        %might need to fill this cell with something?
         parfor_progress;
     else
         %Get DA DATA! 
-        err = 0;
+%         err = 0; 
         %try to get data 4 times this is to prevent timeouts it request spends
         %to much time in que
-        while err < 4
-            try    
-                dataPreSz = parSession.data.getvalues((horizStart*fs):(szStartT(sz)*fs),1:numCh);
-                break;
-            catch
-                err = err + 1;    
-            end
+        numBlocks = ceil( ((szStartT(sz))-(horizStart))/blockLenSecs);  %number of blocks to go through
+        
+        dataPreSz = zeros((szStartT(sz)*fs)-(horizStart*fs),numCh);
+        for block = 1:numBlocks
+%             while err < 8
+%                 try    
+%                     dataPreSz = parSession.data.getvalues((horizStart*fs):(szStartT(sz)*fs),1:numCh);
+                       blkSt  = horizStart + (block-1)*blockLenSecs;
+                       blkEnd = horizStart + (block)*blockLenSecs;
+                       dataPreSz((1+(block-1)*blockLenSecs*fs):(block*blockLenSecs*fs),:) = parSession.data.getvalues((blkSt*fs):(blkEnd*fs)-1,1:numCh);
+%                     break;
+%                 catch
+%                     err = err + 1;    
+%                 end
+%             end
         end
 
     %     predIdx{sz,1} = horizStart*fs;    %Keep track of start of sz pred horizon
     %     predIdx{sz,2} = (szEndT(sz)+bufferT)*fs; %record buffer time as 30 mins after end of sz
 
-        predIdx{sz} = [ horizStart*fs (szEndT(sz)+bufferT)*fs ];
+        predIdx{sz} = [horizStart*fs (szEndT(sz)+bufferT)*fs ];
 
         dataPreSzNan = dataPreSz; %copy block data with Nans 
         dataPreSz(isnan(dataPreSz)) = 0; %NaN's turned to zero
@@ -159,9 +173,13 @@ parfor sz = 1:numSz
     %     feats = cell2mat(feats);
 
         labelTime = (szStartT(sz)-horizStart-winLen):(-winDisp):0;
-
+        
+        if(size(labelTime',1) == size(feats,1))
         %create cell array to return feature vector and lables
-        extFeats{sz} = [labelTime' feats];
+            extFeats{sz} = [labelTime' feats];
+        else
+            extFeats{sz} = [];
+        end
     %     disp(['Progress: ' num2str(sz) '/' num2str(numSz)])
         parfor_progress;
     end
