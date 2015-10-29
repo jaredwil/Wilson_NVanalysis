@@ -1,7 +1,7 @@
 # Wilson_NVanalysis
-**Pipeline and Analysis Tools used for Master's Thesis Project**_
-**Jared Wilson**
-**2015**
+**Pipeline and Analysis Tools used for Master's Thesis Project**<br />
+**Jared Wilson**<br />
+**2015**<br />
 
 
 ##TIME 2 SEIZURE PREDICTION MODEL
